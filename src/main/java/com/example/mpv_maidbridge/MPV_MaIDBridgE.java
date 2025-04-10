@@ -4,17 +4,17 @@ import com.intellij.codeHighlighting.Pass;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.util.Function;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
-import java.io.*;
-import java.util.Collection;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import javax.swing.*;
+import java.util.Collection;
+import java.util.List;
 
 import static com.example.mpv_maidbridge.Auxiliares.*;
 
@@ -87,25 +87,38 @@ public class MPV_MaIDBridgE implements LineMarkerProvider {
 
     private static Map<String, LogData> countLogOccurrences(PsiFile sourceFile) {
         Map<String, LogData> counts = new HashMap<>();
-        VirtualFile vf = sourceFile.getVirtualFile();
-        if (vf == null) return counts;
-
-        String directoryPath = vf.getParent().getPath();
-        File logFile = new File(directoryPath, "logs.txt");
-        if (!logFile.exists()) return counts;
 
         String classQualifiedName = getQualifiedClassName(sourceFile);
         if (classQualifiedName == null) return counts;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String message = extractField(line, "message");
-                String loggerName = extractField(line, "logger_name");
-                String level = extractField(line, "level");
+        String queryJson = String.format("""
+    {
+      "query": {
+        "bool": {
+          "must": [
+            { "match": { "logger_name": "%s" } }
+          ]
+        }
+      },
+      "size": 10000,
+      "_source": ["message", "logger_name", "level"]
+    }
+    """, classQualifiedName);
 
-                if (message != null && loggerName != null && level != null &&
-                        loggerName.equals(classQualifiedName)) {
+        try {
+            String responseJson = ElasticConnector.performSearch("spring-petclinic-logs", queryJson);
+
+            // Parsear JSON con org.json
+            org.json.JSONObject response = new org.json.JSONObject(responseJson);
+            org.json.JSONArray hits = response.getJSONObject("hits").getJSONArray("hits");
+
+            for (int i = 0; i < hits.length(); i++) {
+                org.json.JSONObject source = hits.getJSONObject(i).getJSONObject("_source");
+
+                String message = source.optString("message");
+                String level = source.optString("level");
+
+                if (message != null && level != null) {
                     counts.compute(message, (k, v) -> {
                         if (v == null) return new LogData(1, level);
                         v.count++;
@@ -119,4 +132,8 @@ public class MPV_MaIDBridgE implements LineMarkerProvider {
 
         return counts;
     }
+
+
+
+
 }

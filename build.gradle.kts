@@ -19,6 +19,12 @@ intellij {
     plugins.set(listOf("java"))
 }
 
+dependencies {
+    implementation("org.elasticsearch.client:elasticsearch-rest-client:8.17.4")
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("org.json:json:20231013")
+}
+
 tasks {
     // Set the JVM compatibility versions
     withType<JavaCompile> {
