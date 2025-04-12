@@ -30,7 +30,7 @@ public class Auxiliares {
     public static Color getColorForLevel(String level) {
         return switch (level.toUpperCase()) {
             case "INFO" -> Color.GRAY;
-            case "WARNING" -> Color.ORANGE;
+            case "WARNING", "WARN" -> Color.ORANGE;
             case "SEVERE", "ERROR" -> Color.RED;
             default -> Color.BLUE;
         };

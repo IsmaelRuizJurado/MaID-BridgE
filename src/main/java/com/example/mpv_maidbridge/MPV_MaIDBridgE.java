@@ -50,13 +50,21 @@ public class MPV_MaIDBridgE implements LineMarkerProvider {
                 logLevel = methodName.toUpperCase();
                 logMessage = getStringLiteralValue(args[0]);
             } else if (methodName.equals("log") && args.length >= 2) {
-                // logger.log(Level.WARNING, "mensaje")
-                String levelExpr = args[0].getText();
-                if (levelExpr.contains("Level.")) {
-                    logLevel = levelExpr.substring(levelExpr.indexOf("Level.") + 6).toUpperCase();
-                    logMessage = getStringLiteralValue(args[1]);
+                // logger.log(Level.INFO, "mensaje")
+                PsiExpression levelExpr = args[0];
+                if (levelExpr instanceof PsiReferenceExpression refExpr) {
+                    PsiElement resolved = refExpr.resolve();
+                    if (resolved instanceof PsiField field && field.getContainingClass() != null) {
+                        String className = field.getContainingClass().getQualifiedName();
+                        String fieldName = field.getName();
+                        if ("java.util.logging.Level".equals(className) && fieldName != null) {
+                            logLevel = fieldName.toUpperCase(); // Ej: "INFO", "SEVERE", etc.
+                            logMessage = getStringLiteralValue(args[1]);
+                        }
+                    }
                 }
             }
+
 
             if (logLevel == null || logMessage == null) continue;
 
