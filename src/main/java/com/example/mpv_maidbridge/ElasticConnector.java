@@ -1,5 +1,6 @@
 package com.example.mpv_maidbridge;
 
+import com.example.mpv_maidbridge.settings.ElasticSettingsState;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -13,23 +14,25 @@ import java.io.IOException;
 
 public class ElasticConnector {
 
-    private static final String HOST = "localhost";
-    private static final int PORT = 9200;
-    private static final String SCHEME = "http";
-    private static final String USERNAME = "elastic";
-    private static final String PASSWORD = "aBewwyxIDlbHOF79YcpH";
-
     private static RestClient client;
 
     public static RestClient getClient() {
         if (client == null) {
+            ElasticSettingsState settings = ElasticSettingsState.getInstance();
+
+            String host = settings.getHost();
+            int port = settings.getPort();
+            String scheme = settings.getScheme();
+            String username = settings.getUsername();
+            String password = settings.getPassword();
+
             BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(
                     AuthScope.ANY,
-                    new UsernamePasswordCredentials(USERNAME, PASSWORD)
+                    new UsernamePasswordCredentials(username, password)
             );
 
-            RestClientBuilder builder = RestClient.builder(new HttpHost(HOST, PORT, SCHEME))
+            RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme))
                     .setHttpClientConfigCallback(httpClientBuilder ->
                             httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
                     );
@@ -52,10 +55,10 @@ public class ElasticConnector {
         try {
             if (client != null) {
                 client.close();
+                client = null;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 }
-
