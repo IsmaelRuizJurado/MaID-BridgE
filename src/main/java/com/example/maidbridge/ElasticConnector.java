@@ -1,6 +1,6 @@
-package com.example.mpv_maidbridge;
+package com.example.maidbridge;
 
-import com.example.mpv_maidbridge.settings.ElasticSettingsState;
+import com.example.maidbridge.settings.ElasticSettingsState;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;

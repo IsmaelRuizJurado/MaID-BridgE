@@ -1,19 +1,19 @@
 <idea-plugin>
-    <id>com.example.mpv_maidbridge</id>
-    <name>MPV MaID-BridgE</name>
+    <id>com.example.maidbridge</id>
+    <name>MaID-BridgE</name>
     <version>1.0</version>
     <vendor>Ismael Ruiz Jurado y Pedro Jesús Ruiz Aguilar</vendor>
 
     <description>
-        Plugin de prueba que contiene el Mínimo Producto Viable del TFG MaID-BridgE.
+        !Consigue lo mejor de la monitorización desde tu entorno de desarrollo con MaID-BridgE¡
     </description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
 
     <actions>
-        <action id="com.example.mpv_maidbridge.OpenElasticSettings"
-                class="com.example.mpv_maidbridge.settings.OpenElasticSettingsAction"
+        <action id="com.example.maidbridge.OpenElasticSettings"
+                class="com.example.maidbridge.settings.OpenElasticSettingsAction"
                 text="Configurar Elasticsearch"
                 description="Abre la configuración de conexión con Elasticsearch">
 
@@ -29,8 +29,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.lineMarkerProvider
                 language="JAVA"
-                implementationClass="com.example.mpv_maidbridge.MPV_MaIDBridgE"/>
-        <projectConfigurable instance="com.example.mpv_maidbridge.settings.ElasticSettingsConfigurable"
+                implementationClass="com.example.maidbridge.MaIDBridgE"/>
+        <projectConfigurable instance="com.example.maidbridge.settings.ElasticSettingsConfigurable"
                              displayName="ElasticSearch Settings" />
     </extensions>
 

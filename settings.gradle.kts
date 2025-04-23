@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "PruebaViabilidadIntelliJ"
+rootProject.name = "MaID-BridgE"

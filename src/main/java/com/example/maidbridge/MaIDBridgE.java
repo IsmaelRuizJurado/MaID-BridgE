@@ -1,4 +1,4 @@
-package com.example.mpv_maidbridge;
+package com.example.maidbridge;
 
 import com.intellij.codeHighlighting.Pass;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
@@ -16,9 +16,9 @@ import javax.swing.*;
 import java.util.Collection;
 import java.util.List;
 
-import static com.example.mpv_maidbridge.Auxiliares.*;
+import static com.example.maidbridge.Auxiliares.*;
 
-public class MPV_MaIDBridgE implements LineMarkerProvider {
+public class MaIDBridgE implements LineMarkerProvider {
 
     @Override
     public LineMarkerInfo<?> getLineMarkerInfo(PsiElement element) {

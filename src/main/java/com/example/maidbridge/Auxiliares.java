@@ -1,4 +1,4 @@
-package com.example.mpv_maidbridge;
+package com.example.maidbridge;
 
 import com.intellij.psi.*;
 import com.intellij.util.ui.UIUtil;

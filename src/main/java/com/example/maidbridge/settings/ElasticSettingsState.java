@@ -1,4 +1,4 @@
-package com.example.mpv_maidbridge.settings;
+package com.example.maidbridge.settings;
 
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
