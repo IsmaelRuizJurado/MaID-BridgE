@@ -1,5 +1,6 @@
-package com.example.maidbridge;
+package com.example.maidbridge.monitoring;
 
+import com.example.maidbridge.elastic.ElasticConnector;
 import com.intellij.codeHighlighting.Pass;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
@@ -16,9 +17,9 @@ import javax.swing.*;
 import java.util.Collection;
 import java.util.List;
 
-import static com.example.maidbridge.Auxiliares.*;
+import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
-public class MaIDBridgE implements LineMarkerProvider {
+public class LogMonitoring implements LineMarkerProvider {
 
     @Override
     public LineMarkerInfo<?> getLineMarkerInfo(PsiElement element) {
@@ -114,7 +115,7 @@ public class MaIDBridgE implements LineMarkerProvider {
     """, classQualifiedName);
 
         try {
-            String responseJson = ElasticConnector.performSearch("spring-petclinic-logs", queryJson);
+            String responseJson = ElasticConnector.performSearch(queryJson);
 
             // Parsear JSON con org.json
             org.json.JSONObject response = new org.json.JSONObject(responseJson);

@@ -5,33 +5,29 @@
     <vendor>Ismael Ruiz Jurado y Pedro Jesús Ruiz Aguilar</vendor>
 
     <description>
-        !Consigue lo mejor de la monitorización desde tu entorno de desarrollo con MaID-BridgE¡
+        ¡Consigue lo mejor de la monitorización desde tu entorno de desarrollo con MaID-BridgE!
     </description>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
 
     <actions>
-        <action id="com.example.maidbridge.OpenElasticSettings"
-                class="com.example.maidbridge.settings.OpenElasticSettingsAction"
-                text="Configurar Elasticsearch"
-                description="Abre la configuración de conexión con Elasticsearch">
-
-            <!-- Menú Tools -->
+        <action id="com.example.mpv_maidbridge.OpenElasticSettings" class="com.example.maidbridge.settings.OpenElasticSettingsAction" text="Configure MaID-BridgE" description="Open the configurations tab for the plug-in MaID-BridgE">
+            <!--  Menú Tools  -->
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-
-            <!-- Menú contextual del proyecto -->
+            <!--  Menú contextual del proyecto  -->
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
-
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
-        <codeInsight.lineMarkerProvider
-                language="JAVA"
-                implementationClass="com.example.maidbridge.MaIDBridgE"/>
-        <projectConfigurable instance="com.example.maidbridge.settings.ElasticSettingsConfigurable"
-                             displayName="ElasticSearch Settings" />
+        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.LogMonitoring"/>
+        <projectConfigurable instance="com.example.maidbridge.settings.ElasticSettingsConfigurable" displayName="Configure MaID-BridgE"/>
+        <postStartupActivity implementation="com.example.maidbridge.settings.ElasticSettingsNotifier"/>
+
+        <notificationGroup id="MaID-BridgE Notification Group"
+                           displayType="BALLOON"
+                           isLogByDefault="true"/>
     </extensions>
 
 </idea-plugin>

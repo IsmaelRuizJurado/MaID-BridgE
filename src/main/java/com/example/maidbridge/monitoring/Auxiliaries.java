@@ -1,4 +1,4 @@
-package com.example.maidbridge;
+package com.example.maidbridge.monitoring;
 
 import com.intellij.psi.*;
 import com.intellij.util.ui.UIUtil;
@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public class Auxiliares {
+public class Auxiliaries {
     public static String getQualifiedClassName(PsiFile file) {
         if (!(file instanceof PsiJavaFile javaFile)) return null;
         PsiClass[] classes = javaFile.getClasses();

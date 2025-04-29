@@ -1,4 +1,4 @@
-package com.example.maidbridge;
+package com.example.maidbridge.elastic;
 
 import com.example.maidbridge.settings.ElasticSettingsState;
 import org.apache.http.auth.AuthScope;
@@ -43,13 +43,17 @@ public class ElasticConnector {
         return client;
     }
 
-    public static String performSearch(String indexName, String queryJson) throws IOException {
+    public static String performSearch(String queryJson) throws IOException {
+        ElasticSettingsState settings = ElasticSettingsState.getInstance();
+        String indexName = settings.getIndex();
+
         Request request = new Request("GET", "/" + indexName + "/_search");
         request.setJsonEntity(queryJson);
 
         Response response = getClient().performRequest(request);
         return new String(response.getEntity().getContent().readAllBytes());
     }
+
 
     public static void close() {
         try {

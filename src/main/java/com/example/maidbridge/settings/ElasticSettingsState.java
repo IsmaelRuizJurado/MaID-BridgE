@@ -19,6 +19,7 @@ public final class ElasticSettingsState implements PersistentStateComponent<Elas
         public String scheme = "http";
         public String username = "elastic";
         public String password = "aBewwyxIDlbHOF79YcpH";
+        public String index = "spring-petclinic-logs";
     }
 
     public static ElasticSettingsState getInstance() {
@@ -76,5 +77,13 @@ public final class ElasticSettingsState implements PersistentStateComponent<Elas
 
     public void setPassword(String password) {
         state.password = password;
+    }
+
+    public String getIndex() {
+        return state.index;
+    }
+
+    public void setIndex(String index) {
+        state.index = index;
     }
 }
