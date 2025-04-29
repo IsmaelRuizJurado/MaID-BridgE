@@ -20,6 +20,7 @@ public final class ElasticSettingsState implements PersistentStateComponent<Elas
         public String username = "elastic";
         public String password = "aBewwyxIDlbHOF79YcpH";
         public String index = "spring-petclinic-logs";
+        public int refreshInterval = 15;
     }
 
     public static ElasticSettingsState getInstance() {
@@ -86,4 +87,13 @@ public final class ElasticSettingsState implements PersistentStateComponent<Elas
     public void setIndex(String index) {
         state.index = index;
     }
+
+    public int getRefreshInterval() {
+        return state.refreshInterval;
+    }
+
+    public void setRefreshInterval(int interval) {
+        state.refreshInterval = interval;
+    }
+
 }

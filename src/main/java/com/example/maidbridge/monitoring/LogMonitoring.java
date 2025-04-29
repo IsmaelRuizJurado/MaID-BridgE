@@ -33,6 +33,8 @@ public class LogMonitoring implements LineMarkerProvider {
 
         PsiFile file = elements.get(0).getContainingFile();
         Map<String, LogData> logCounts = countLogOccurrences(file);
+        //Map<String, LogData> logCounts = LogCache.getLogs(file);
+
 
         for (PsiElement element : elements) {
             if (!(element instanceof PsiMethodCallExpression callExpr)) continue;

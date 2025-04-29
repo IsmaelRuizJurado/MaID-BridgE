@@ -23,6 +23,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.LogMonitoring"/>
         <projectConfigurable instance="com.example.maidbridge.settings.ElasticSettingsConfigurable" displayName="Configure MaID-BridgE"/>
+        <postStartupActivity implementation="com.example.maidbridge.settings.LogRefreshStartupActivity"/>
         <postStartupActivity implementation="com.example.maidbridge.settings.ElasticSettingsNotifier"/>
 
         <notificationGroup id="MaID-BridgE Notification Group"
