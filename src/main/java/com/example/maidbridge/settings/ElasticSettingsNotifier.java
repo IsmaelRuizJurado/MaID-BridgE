@@ -33,11 +33,12 @@ public class ElasticSettingsNotifier implements ProjectActivity {
 
         if (isConfigured) {
             content = String.format(
-                    "<html>Current MaID-BridgE configuration:<br>- Host: %s<br>- Port: %d<br>- Scheme: %s<br>- Index: %s</html>",
+                    "<html>Current MaID-BridgE configuration:<br>- Host: %s<br>- Port: %d<br>- Scheme: %s<br>- Index: %s<br>- Refresh Interval: %d s</html>",
                     settings.getHost(),
                     settings.getPort(),
                     settings.getScheme(),
-                    settings.getIndex()
+                    settings.getIndex(),
+                    settings.getRefreshInterval()
             );
             type = NotificationType.INFORMATION;
         } else {

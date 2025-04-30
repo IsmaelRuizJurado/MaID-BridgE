@@ -15,6 +15,7 @@ public class ElasticSettingsConfigurable implements Configurable {
     private JTextField schemeField;
     private JTextField userField;
     private JPasswordField passwordField;
+    private JTextField indexField;
     private JTextField refreshIntervalField;
 
     private JPanel mainPanel;
@@ -28,13 +29,14 @@ public class ElasticSettingsConfigurable implements Configurable {
     @Nullable
     @Override
     public JComponent createComponent() {
-        mainPanel = new JPanel(new GridLayout(6, 2, 10, 10));
+        mainPanel = new JPanel(new GridLayout(7, 2, 2, 2));
 
         hostField = new JTextField();
         portField = new JTextField();
         schemeField = new JTextField();
         userField = new JTextField();
         passwordField = new JPasswordField();
+        indexField = new JTextField();
         refreshIntervalField = new JTextField();
 
         mainPanel.add(new JLabel("Elasticsearch host:"));
@@ -52,6 +54,9 @@ public class ElasticSettingsConfigurable implements Configurable {
         mainPanel.add(new JLabel("Elasticsearch password:"));
         mainPanel.add(passwordField);
 
+        mainPanel.add(new JLabel("Elasticsearch index name:"));
+        mainPanel.add(indexField);
+
         mainPanel.add(new JLabel("Refresh interval (seconds):"));
         mainPanel.add(refreshIntervalField);
 
@@ -66,6 +71,7 @@ public class ElasticSettingsConfigurable implements Configurable {
                 !schemeField.getText().equals(settings.getScheme()) ||
                 !userField.getText().equals(settings.getUsername()) ||
                 !new String(passwordField.getPassword()).equals(settings.getPassword()) ||
+                !indexField.getText().equals(String.valueOf(settings.getIndex())) ||
                 !refreshIntervalField.getText().equals(String.valueOf(settings.getRefreshInterval()));
     }
 
@@ -86,6 +92,7 @@ public class ElasticSettingsConfigurable implements Configurable {
         settings.setScheme(schemeField.getText());
         settings.setUsername(userField.getText());
         settings.setPassword(new String(passwordField.getPassword()));
+        settings.setIndex(indexField.getText());
         settings.setRefreshInterval(interval);
     }
 
@@ -97,6 +104,7 @@ public class ElasticSettingsConfigurable implements Configurable {
         schemeField.setText(settings.getScheme());
         userField.setText(settings.getUsername());
         passwordField.setText(settings.getPassword());
+        indexField.setText(settings.getIndex());
         refreshIntervalField.setText(String.valueOf(settings.getRefreshInterval()));
     }
 

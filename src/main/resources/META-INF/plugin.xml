@@ -12,7 +12,10 @@
     <depends>com.intellij.modules.java</depends>
 
     <actions>
-        <action id="com.example.mpv_maidbridge.OpenElasticSettings" class="com.example.maidbridge.settings.OpenElasticSettingsAction" text="Configure MaID-BridgE" description="Open the configurations tab for the plug-in MaID-BridgE">
+        <action id="com.example.maidbridge.OpenElasticSettings"
+                class="com.example.maidbridge.settings.OpenElasticSettingsAction"
+                text="Configure MaID-BridgE"
+                description="Open the configurations tab for the plug-in MaID-BridgE">
             <!--  Menú Tools  -->
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <!--  Menú contextual del proyecto  -->
