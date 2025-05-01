@@ -5,10 +5,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import org.jetbrains.annotations.NotNull;
 
-public class OpenElasticSettingsAction extends AnAction {
+public class OpenMaidBridgeSettingsAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        ShowSettingsUtil.getInstance().showSettingsDialog(e.getProject(), ElasticSettingsConfigurable.class);
+        ShowSettingsUtil.getInstance().showSettingsDialog(e.getProject(), MaidBridgeSettingsConfigurable.class);
     }
 }

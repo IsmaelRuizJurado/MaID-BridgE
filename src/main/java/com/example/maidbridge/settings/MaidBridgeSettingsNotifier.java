@@ -14,30 +14,27 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class ElasticSettingsNotifier implements ProjectActivity {
+public class MaidBridgeSettingsNotifier implements ProjectActivity {
 
     @Override
     public @Nullable Object execute(@NotNull Project project, @NotNull Continuation<? super Unit> continuation) {
-        ElasticSettingsState settings = ElasticSettingsState.getInstance();
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
 
         boolean isConfigured =
-                settings.getHost() != null && !settings.getHost().isEmpty() &&
-                        settings.getPort() > 0 &&
-                        settings.getScheme() != null && !settings.getScheme().isEmpty() &&
+                settings.getElasticsearchURL() != null && !settings.getElasticsearchURL().isEmpty() &&
                         settings.getUsername() != null && !settings.getUsername().isEmpty() &&
                         settings.getPassword() != null && !settings.getPassword().isEmpty() &&
-                        settings.getIndex() != null && !settings.getIndex().isEmpty();
-
+                        settings.getIndex() != null && !settings.getIndex().isEmpty() &&
+                        settings.getKibanaURL() != null && !settings.getKibanaURL().isEmpty();
         String content;
         NotificationType type;
 
         if (isConfigured) {
             content = String.format(
-                    "<html>Current MaID-BridgE configuration:<br>- Host: %s<br>- Port: %d<br>- Scheme: %s<br>- Index: %s<br>- Refresh Interval: %d s</html>",
-                    settings.getHost(),
-                    settings.getPort(),
-                    settings.getScheme(),
+                    "<html>Current MaID-BridgE configuration:<br>- Elasticsearch URL: %s<br>- Index: %s<br>- Kibana URL: %s<br>- Refresh Interval: %d s</html>",
+                    settings.getElasticsearchURL(),
                     settings.getIndex(),
+                    settings.getKibanaURL(),
                     settings.getRefreshInterval()
             );
             type = NotificationType.INFORMATION;
@@ -52,7 +49,7 @@ public class ElasticSettingsNotifier implements ProjectActivity {
                 .createNotification("MaID-BridgE Configuration", content, type);
 
         notification.addAction(NotificationAction.createSimple("Configure Now", () ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, ElasticSettingsConfigurable.class)
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, MaidBridgeSettingsConfigurable.class)
         ));
 
         notification.notify(project);

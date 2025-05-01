@@ -1,6 +1,6 @@
 package com.example.maidbridge.elastic;
 
-import com.example.maidbridge.settings.ElasticSettingsState;
+import com.example.maidbridge.settings.MaidBridgeSettingsState;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -11,18 +11,17 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class ElasticConnector {
 
     private static RestClient client;
 
-    public static RestClient getClient() {
+    public static RestClient getClient() throws MalformedURLException {
         if (client == null) {
-            ElasticSettingsState settings = ElasticSettingsState.getInstance();
+            MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
 
-            String host = settings.getHost();
-            int port = settings.getPort();
-            String scheme = settings.getScheme();
             String username = settings.getUsername();
             String password = settings.getPassword();
 
@@ -31,6 +30,13 @@ public class ElasticConnector {
                     AuthScope.ANY,
                     new UsernamePasswordCredentials(username, password)
             );
+
+            String elasticURL = settings.getElasticsearchURL();
+            URL url = new URL(elasticURL);
+
+            String scheme = url.getProtocol();
+            String host = url.getHost();
+            int port = url.getPort();
 
             RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme))
                     .setHttpClientConfigCallback(httpClientBuilder ->
@@ -44,7 +50,7 @@ public class ElasticConnector {
     }
 
     public static String performSearch(String queryJson) throws IOException {
-        ElasticSettingsState settings = ElasticSettingsState.getInstance();
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
         String indexName = settings.getIndex();
 
         Request request = new Request("GET", "/" + indexName + "/_search");

@@ -12,8 +12,8 @@
     <depends>com.intellij.modules.java</depends>
 
     <actions>
-        <action id="com.example.maidbridge.OpenElasticSettings"
-                class="com.example.maidbridge.settings.OpenElasticSettingsAction"
+        <action id="com.example.maidbridge.OpenMaidBridgeSettings"
+                class="com.example.maidbridge.settings.OpenMaidBridgeSettingsAction"
                 text="Configure MaID-BridgE"
                 description="Open the configurations tab for the plug-in MaID-BridgE">
             <!--  Menú Tools  -->
@@ -25,9 +25,9 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.LogMonitoring"/>
-        <projectConfigurable instance="com.example.maidbridge.settings.ElasticSettingsConfigurable" displayName="Configure MaID-BridgE"/>
+        <projectConfigurable instance="com.example.maidbridge.settings.MaidBridgeSettingsConfigurable" displayName="Configure MaID-BridgE"/>
         <postStartupActivity implementation="com.example.maidbridge.settings.LogRefreshStartupActivity"/>
-        <postStartupActivity implementation="com.example.maidbridge.settings.ElasticSettingsNotifier"/>
+        <postStartupActivity implementation="com.example.maidbridge.settings.MaidBridgeSettingsNotifier"/>
 
         <notificationGroup id="MaID-BridgE Notification Group"
                            displayType="BALLOON"

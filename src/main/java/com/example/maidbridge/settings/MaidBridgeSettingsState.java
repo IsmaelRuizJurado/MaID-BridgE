@@ -8,23 +8,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Service
-@State(name = "ElasticSettings", storages = @Storage("ElasticSettings.xml"))
-public final class ElasticSettingsState implements PersistentStateComponent<ElasticSettingsState.State> {
+@State(name = "MaidBridgeSettings", storages = @Storage("MaidBridgeSettings.xml"))
+public final class MaidBridgeSettingsState implements PersistentStateComponent<MaidBridgeSettingsState.State> {
 
     private State state = new State();
 
     public static class State {
-        public String host = "localhost";
-        public int port = 9200;
-        public String scheme = "http";
+        public String elasticsearchURL = "http://localhost:9200/";
         public String username = "elastic";
         public String password = "aBewwyxIDlbHOF79YcpH";
         public String index = "spring-petclinic-logs";
+        public String kibanaURL = "http://localhost:5601/";
         public int refreshInterval = 15;
     }
 
-    public static ElasticSettingsState getInstance() {
-        return com.intellij.openapi.application.ApplicationManager.getApplication().getService(ElasticSettingsState.class);
+    public static MaidBridgeSettingsState getInstance() {
+        return com.intellij.openapi.application.ApplicationManager.getApplication().getService(MaidBridgeSettingsState.class);
     }
 
     @Nullable
@@ -38,30 +37,13 @@ public final class ElasticSettingsState implements PersistentStateComponent<Elas
         this.state = state;
     }
 
-    // Métodos de acceso para ElasticConnector
 
-    public String getHost() {
-        return state.host;
+    public String getElasticsearchURL() {
+        return state.elasticsearchURL;
     }
 
-    public void setHost(String host) {
-        state.host = host;
-    }
-
-    public int getPort() {
-        return state.port;
-    }
-
-    public void setPort(int port) {
-        state.port = port;
-    }
-
-    public String getScheme() {
-        return state.scheme;
-    }
-
-    public void setScheme(String scheme) {
-        state.scheme = scheme;
+    public void setElasticsearchURL(String elasticsearchURL) {
+        state.elasticsearchURL = elasticsearchURL;
     }
 
     public String getUsername() {
@@ -86,6 +68,14 @@ public final class ElasticSettingsState implements PersistentStateComponent<Elas
 
     public void setIndex(String index) {
         state.index = index;
+    }
+
+    public String getKibanaURL() {
+        return state.kibanaURL;
+    }
+
+    public void setKibanaURL(String kibanaURL) {
+        state.kibanaURL = kibanaURL;
     }
 
     public int getRefreshInterval() {

@@ -1,6 +1,6 @@
 package com.example.maidbridge.monitoring;
 
-import com.example.maidbridge.settings.ElasticSettingsState;
+import com.example.maidbridge.settings.MaidBridgeSettingsState;
 import com.intellij.psi.*;
 import com.intellij.util.ui.UIUtil;
 
@@ -8,8 +8,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-import java.awt.Desktop;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -19,18 +17,6 @@ public class Auxiliaries {
         PsiClass[] classes = javaFile.getClasses();
         if (classes.length == 0) return null;
         return classes[0].getQualifiedName();
-    }
-
-    public static String extractField(String line, String fieldName) {
-        String pattern = "\"" + fieldName + "\":\"";
-        int startIdx = line.indexOf(pattern);
-        if (startIdx < 0) return null;
-
-        startIdx += pattern.length();
-        int endIdx = line.indexOf("\"", startIdx);
-        if (endIdx < 0) return null;
-
-        return line.substring(startIdx, endIdx);
     }
 
     public static Color getColorForLevel(String level) {
@@ -92,8 +78,12 @@ public class Auxiliaries {
     }
 
     public static String buildKibanaUrl(String loggerName, String message) {
-        ElasticSettingsState settings = ElasticSettingsState.getInstance();
-        String baseUrl = settings.getScheme() + "://" + settings.getHost() + ":5601";
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
+        String baseUrl = settings.getKibanaURL();
+
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/";
+        }
 
         String encodedQuery = URLEncoder.encode(
                 String.format("logger_name:\"%s\" and message:\"%s\"", loggerName, message),
@@ -101,7 +91,7 @@ public class Auxiliaries {
         );
 
         return String.format(
-                "%s/app/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:now-24h,to:now))",
+                "%sapp/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:now-24h,to:now))",
                 baseUrl,
                 settings.getIndex(),
                 encodedQuery

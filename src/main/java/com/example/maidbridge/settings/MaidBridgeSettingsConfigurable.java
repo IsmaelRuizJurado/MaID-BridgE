@@ -7,15 +7,16 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 
-public class ElasticSettingsConfigurable implements Configurable {
+public class MaidBridgeSettingsConfigurable implements Configurable {
 
-    private JTextField hostField;
-    private JTextField portField;
-    private JTextField schemeField;
+    private JTextField elasticsearchURLField;
     private JTextField userField;
     private JPasswordField passwordField;
     private JTextField indexField;
+    private JTextField kibanaURLField;
     private JTextField refreshIntervalField;
 
     private JPanel mainPanel;
@@ -29,24 +30,17 @@ public class ElasticSettingsConfigurable implements Configurable {
     @Nullable
     @Override
     public JComponent createComponent() {
-        mainPanel = new JPanel(new GridLayout(7, 2, 2, 2));
+        mainPanel = new JPanel(new GridLayout(11, 2, 1, 1));
 
-        hostField = new JTextField();
-        portField = new JTextField();
-        schemeField = new JTextField();
+        elasticsearchURLField = new JTextField();
         userField = new JTextField();
         passwordField = new JPasswordField();
         indexField = new JTextField();
+        kibanaURLField = new JTextField();
         refreshIntervalField = new JTextField();
 
-        mainPanel.add(new JLabel("Elasticsearch host:"));
-        mainPanel.add(hostField);
-
-        mainPanel.add(new JLabel("Elasticsearch port:"));
-        mainPanel.add(portField);
-
-        mainPanel.add(new JLabel("Elasticsearch scheme:"));
-        mainPanel.add(schemeField);
+        mainPanel.add(new JLabel("Elasticsearch deployment URL:"));
+        mainPanel.add(elasticsearchURLField);
 
         mainPanel.add(new JLabel("Elasticsearch username:"));
         mainPanel.add(userField);
@@ -57,6 +51,9 @@ public class ElasticSettingsConfigurable implements Configurable {
         mainPanel.add(new JLabel("Elasticsearch index name:"));
         mainPanel.add(indexField);
 
+        mainPanel.add(new JLabel("Kibana deployment URL:"));
+        mainPanel.add(kibanaURLField);
+
         mainPanel.add(new JLabel("Refresh interval (seconds):"));
         mainPanel.add(refreshIntervalField);
 
@@ -65,19 +62,30 @@ public class ElasticSettingsConfigurable implements Configurable {
 
     @Override
     public boolean isModified() {
-        ElasticSettingsState settings = ElasticSettingsState.getInstance();
-        return !hostField.getText().equals(settings.getHost()) ||
-                !portField.getText().equals(String.valueOf(settings.getPort())) ||
-                !schemeField.getText().equals(settings.getScheme()) ||
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
+        return !elasticsearchURLField.getText().equals(settings.getElasticsearchURL()) ||
                 !userField.getText().equals(settings.getUsername()) ||
                 !new String(passwordField.getPassword()).equals(settings.getPassword()) ||
                 !indexField.getText().equals(String.valueOf(settings.getIndex())) ||
+                !kibanaURLField.getText().equals(settings.getKibanaURL()) ||
                 !refreshIntervalField.getText().equals(String.valueOf(settings.getRefreshInterval()));
     }
 
     @Override
     public void apply() throws ConfigurationException {
-        ElasticSettingsState settings = ElasticSettingsState.getInstance();
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
+
+        try {
+            new URL(elasticsearchURLField.getText());
+        } catch (MalformedURLException e) {
+            throw new ConfigurationException("Invalid Elasticsearch URL.");
+        }
+
+        try {
+            new URL(kibanaURLField.getText());
+        } catch (MalformedURLException e) {
+            throw new ConfigurationException("Invalid Kibana URL.");
+        }
 
         int interval;
         try {
@@ -87,24 +95,23 @@ public class ElasticSettingsConfigurable implements Configurable {
             throw new ConfigurationException("Refresh interval must be a positive integer.");
         }
 
-        settings.setHost(hostField.getText());
-        settings.setPort(Integer.parseInt(portField.getText()));
-        settings.setScheme(schemeField.getText());
+        settings.setElasticsearchURL(elasticsearchURLField.getText());
         settings.setUsername(userField.getText());
         settings.setPassword(new String(passwordField.getPassword()));
         settings.setIndex(indexField.getText());
+        settings.setKibanaURL(kibanaURLField.getText());
         settings.setRefreshInterval(interval);
     }
 
+
     @Override
     public void reset() {
-        ElasticSettingsState settings = ElasticSettingsState.getInstance();
-        hostField.setText(settings.getHost());
-        portField.setText(String.valueOf(settings.getPort()));
-        schemeField.setText(settings.getScheme());
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
+        elasticsearchURLField.setText(settings.getElasticsearchURL());
         userField.setText(settings.getUsername());
         passwordField.setText(settings.getPassword());
         indexField.setText(settings.getIndex());
+        kibanaURLField.setText(settings.getKibanaURL());
         refreshIntervalField.setText(String.valueOf(settings.getRefreshInterval()));
     }
 
