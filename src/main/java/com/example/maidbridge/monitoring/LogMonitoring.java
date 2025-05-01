@@ -4,7 +4,10 @@ import com.example.maidbridge.elastic.ElasticConnector;
 import com.intellij.codeHighlighting.Pass;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.psi.*;
 import com.intellij.util.Function;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +21,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 
 import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
@@ -34,6 +40,8 @@ public class LogMonitoring implements LineMarkerProvider {
         if (elements.isEmpty()) return;
 
         PsiFile file = elements.get(0).getContainingFile();
+        String classQualifiedName = getQualifiedClassName(file);
+        if (classQualifiedName == null) return;
         Map<String, LogData> logCounts = countLogOccurrences(file);
 
         for (PsiElement element : elements) {
@@ -75,6 +83,8 @@ public class LogMonitoring implements LineMarkerProvider {
                 if (logMessage.contains(knownMessage)) {
                     Icon icon = createColoredIcon(getColorForLevel(data.level), data.count);
 
+                    String kibanaUrl = buildKibanaUrl(classQualifiedName, knownMessage);
+
                     LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
                             element,
                             element.getTextRange(),
@@ -85,22 +95,34 @@ public class LogMonitoring implements LineMarkerProvider {
                                 <b>Type:</b> %s<br>
                                 <b>Message:</b> %s<br>
                                 <b>Total occurrences:</b> %d<br>
-                                <b>Occurrences (last 24h):</b> %d
+                                <b>Occurrences (last 24h):</b> %d<br>
+                                <b>Click icon to copy Kibana URL</b>
                                 </html>
                                 """,
                                     data.level,
                                     knownMessage,
                                     data.count,
                                     data.countLast24h
-                            ), null,
+                            ),
+                            (mouseEvent, psiElement) -> {
+                                StringSelection selection = new StringSelection(kibanaUrl);
+                                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+
+                                NotificationGroupManager.getInstance()
+                                        .getNotificationGroup("MaID-BridgE Notification Group")
+                                        .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
+                                        .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
+                            },
                             GutterIconRenderer.Alignment.LEFT
                     );
+
                     result.add(marker);
                     break;
                 }
             }
         }
     }
+
 
     private static Map<String, LogData> countLogOccurrences(PsiFile sourceFile) {
         Map<String, LogData> counts = new HashMap<>();
@@ -156,17 +178,5 @@ public class LogMonitoring implements LineMarkerProvider {
         }
 
         return counts;
-    }
-
-    public static class LogData {
-        public int count;
-        public String level;
-        public int countLast24h;
-
-        public LogData(int count, String level, int countLast24h) {
-            this.count = count;
-            this.level = level;
-            this.countLast24h = countLast24h;
-        }
     }
 }

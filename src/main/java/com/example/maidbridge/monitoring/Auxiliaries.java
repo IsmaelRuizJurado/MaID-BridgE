@@ -1,11 +1,17 @@
 package com.example.maidbridge.monitoring;
 
+import com.example.maidbridge.settings.ElasticSettingsState;
 import com.intellij.psi.*;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+
+import java.awt.Desktop;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class Auxiliaries {
     public static String getQualifiedClassName(PsiFile file) {
@@ -73,4 +79,32 @@ public class Auxiliaries {
         return expr.getText().replace("\"", "");
     }
 
+    public static class LogData {
+        public int count;
+        public String level;
+        public int countLast24h;
+
+        public LogData(int count, String level, int countLast24h) {
+            this.count = count;
+            this.level = level;
+            this.countLast24h = countLast24h;
+        }
+    }
+
+    public static String buildKibanaUrl(String loggerName, String message) {
+        ElasticSettingsState settings = ElasticSettingsState.getInstance();
+        String baseUrl = settings.getScheme() + "://" + settings.getHost() + ":5601";
+
+        String encodedQuery = URLEncoder.encode(
+                String.format("logger_name:\"%s\" and message:\"%s\"", loggerName, message),
+                StandardCharsets.UTF_8
+        );
+
+        return String.format(
+                "%s/app/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:now-24h,to:now))",
+                baseUrl,
+                settings.getIndex(),
+                encodedQuery
+        );
+    }
 }
