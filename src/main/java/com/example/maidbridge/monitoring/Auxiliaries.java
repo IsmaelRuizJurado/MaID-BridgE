@@ -73,13 +73,4 @@ public class Auxiliaries {
         return expr.getText().replace("\"", "");
     }
 
-    public static class LogData {
-        int count;
-        String level;
-
-        LogData(int count, String level) {
-            this.count = count;
-            this.level = level;
-        }
-    }
 }

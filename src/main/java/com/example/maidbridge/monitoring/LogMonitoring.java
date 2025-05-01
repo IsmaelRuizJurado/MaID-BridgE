@@ -8,14 +8,16 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.psi.*;
 import com.intellij.util.Function;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import javax.swing.*;
+import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
@@ -23,7 +25,7 @@ public class LogMonitoring implements LineMarkerProvider {
 
     @Override
     public LineMarkerInfo<?> getLineMarkerInfo(PsiElement element) {
-        return null; // Usamos collectSlowLineMarkers
+        return null; // We use collectSlowLineMarkers
     }
 
     @Override
@@ -33,8 +35,6 @@ public class LogMonitoring implements LineMarkerProvider {
 
         PsiFile file = elements.get(0).getContainingFile();
         Map<String, LogData> logCounts = countLogOccurrences(file);
-        //Map<String, LogData> logCounts = LogCache.getLogs(file);
-
 
         for (PsiElement element : elements) {
             if (!(element instanceof PsiMethodCallExpression callExpr)) continue;
@@ -49,11 +49,9 @@ public class LogMonitoring implements LineMarkerProvider {
             PsiExpression[] args = callExpr.getArgumentList().getExpressions();
 
             if ((methodName.equals("info") || methodName.equals("warning") || methodName.equals("severe")) && args.length >= 1) {
-                // logger.info("mensaje")
                 logLevel = methodName.toUpperCase();
                 logMessage = getStringLiteralValue(args[0]);
             } else if (methodName.equals("log") && args.length >= 2) {
-                // logger.log(Level.INFO, "mensaje")
                 PsiExpression levelExpr = args[0];
                 if (levelExpr instanceof PsiReferenceExpression refExpr) {
                     PsiElement resolved = refExpr.resolve();
@@ -61,13 +59,12 @@ public class LogMonitoring implements LineMarkerProvider {
                         String className = field.getContainingClass().getQualifiedName();
                         String fieldName = field.getName();
                         if ("java.util.logging.Level".equals(className) && fieldName != null) {
-                            logLevel = fieldName.toUpperCase(); // Ej: "INFO", "SEVERE", etc.
+                            logLevel = fieldName.toUpperCase();
                             logMessage = getStringLiteralValue(args[1]);
                         }
                     }
                 }
             }
-
 
             if (logLevel == null || logMessage == null) continue;
 
@@ -83,10 +80,19 @@ public class LogMonitoring implements LineMarkerProvider {
                             element.getTextRange(),
                             icon,
                             Pass.LINE_MARKERS,
-                            (Function<PsiElement, String>) psi ->
-                                    String.format("Log '%s'\nNivel: %s\nOcurrencias: %d",
-                                            knownMessage, data.level, data.count),
-                            null,
+                            (Function<PsiElement, String>) psi -> String.format("""
+                                <html>
+                                <b>Type:</b> %s<br>
+                                <b>Message:</b> %s<br>
+                                <b>Total occurrences:</b> %d<br>
+                                <b>Occurrences (last 24h):</b> %d
+                                </html>
+                                """,
+                                    data.level,
+                                    knownMessage,
+                                    data.count,
+                                    data.countLast24h
+                            ), null,
                             GutterIconRenderer.Alignment.LEFT
                     );
                     result.add(marker);
@@ -103,39 +109,47 @@ public class LogMonitoring implements LineMarkerProvider {
         if (classQualifiedName == null) return counts;
 
         String queryJson = String.format("""
-    {
-      "query": {
-        "bool": {
-          "must": [
-            { "match": { "logger_name": "%s" } }
-          ]
-        }
-      },
-      "size": 10000,
-      "_source": ["message", "logger_name", "level"]
-    }
-    """, classQualifiedName);
+            {
+              "query": {
+                "bool": {
+                  "must": [
+                    { "match": { "logger_name": "%s" } }
+                  ]
+                }
+              },
+              "size": 10000,
+              "_source": ["message", "logger_name", "level", "@timestamp"]
+            }
+            """, classQualifiedName);
 
         try {
             String responseJson = ElasticConnector.performSearch(queryJson);
-
-            // Parsear JSON con org.json
-            org.json.JSONObject response = new org.json.JSONObject(responseJson);
-            org.json.JSONArray hits = response.getJSONObject("hits").getJSONArray("hits");
+            JSONObject response = new JSONObject(responseJson);
+            JSONArray hits = response.getJSONObject("hits").getJSONArray("hits");
 
             for (int i = 0; i < hits.length(); i++) {
-                org.json.JSONObject source = hits.getJSONObject(i).getJSONObject("_source");
+                JSONObject source = hits.getJSONObject(i).getJSONObject("_source");
 
                 String message = source.optString("message");
                 String level = source.optString("level");
 
-                if (message != null && level != null) {
-                    counts.compute(message, (k, v) -> {
-                        if (v == null) return new LogData(1, level);
-                        v.count++;
-                        return v;
-                    });
-                }
+                counts.compute(message, (k, v) -> {
+                    boolean isRecent = false;
+                    String timestampStr = source.optString("@timestamp");
+                    if (timestampStr != null && !timestampStr.isEmpty()) {
+                        try {
+                            ZonedDateTime logTime = ZonedDateTime.parse(timestampStr);
+                            isRecent = logTime.isAfter(ZonedDateTime.now(java.time.ZoneOffset.UTC).minusHours(24));
+                        } catch (Exception e) {
+                            // Optionally handle parsing error
+                        }
+                    }
+
+                    if (v == null) return new LogData(1, level, isRecent ? 1 : 0);
+                    v.count++;
+                    if (isRecent) v.countLast24h++;
+                    return v;
+                });
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -144,7 +158,15 @@ public class LogMonitoring implements LineMarkerProvider {
         return counts;
     }
 
+    public static class LogData {
+        public int count;
+        public String level;
+        public int countLast24h;
 
-
-
+        public LogData(int count, String level, int countLast24h) {
+            this.count = count;
+            this.level = level;
+            this.countLast24h = countLast24h;
+        }
+    }
 }
