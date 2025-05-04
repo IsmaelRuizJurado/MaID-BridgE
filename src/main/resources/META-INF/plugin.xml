@@ -2,10 +2,10 @@
     <id>com.example.maidbridge</id>
     <name>MaID-BridgE</name>
     <version>1.0</version>
-    <vendor>Ismael Ruiz Jurado y Pedro Jesús Ruiz Aguilar</vendor>
+    <vendor>Ismael Ruiz Jurado and Pedro Jesús Ruiz Aguilar</vendor>
 
     <description>
-        ¡Consigue lo mejor de la monitorización desde tu entorno de desarrollo con MaID-BridgE!
+        Get the benefits of monitoriring directly on your development environment with MaID-BridgE!
     </description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -25,6 +25,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.LogMonitoring"/>
+        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.ErrorMonitoring"/>
         <projectConfigurable instance="com.example.maidbridge.settings.MaidBridgeSettingsConfigurable" displayName="Configure MaID-BridgE"/>
         <postStartupActivity implementation="com.example.maidbridge.settings.LogRefreshStartupActivity"/>
         <postStartupActivity implementation="com.example.maidbridge.settings.MaidBridgeSettingsNotifier"/>

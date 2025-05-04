@@ -1,6 +1,6 @@
 package com.example.maidbridge.settings;
 
-import com.example.maidbridge.monitoring.LogRefreshScheduler;
+import com.example.maidbridge.monitoring.RefreshScheduler;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.ProjectActivity;
 import kotlin.Unit;
@@ -14,7 +14,7 @@ public class LogRefreshStartupActivity implements ProjectActivity {
 
     @Override
     public @Nullable Object execute(@NotNull Project project, @NotNull Continuation<? super Unit> continuation) {
-        LogRefreshScheduler.start(project);
+        RefreshScheduler.start(project);
         return CompletableFuture.completedFuture(null);
     }
 }

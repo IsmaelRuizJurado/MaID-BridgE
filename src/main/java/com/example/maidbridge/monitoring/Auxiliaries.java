@@ -77,6 +77,17 @@ public class Auxiliaries {
         }
     }
 
+    public static class ErrorDetail {
+        public final int line;
+        public final String exceptionType;
+
+        public ErrorDetail(int line, String exceptionType) {
+            this.line = line;
+            this.exceptionType = exceptionType;
+        }
+    }
+
+
     public static String buildKibanaUrl(String loggerName, String message) {
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
         String baseUrl = settings.getKibanaURL();
@@ -96,5 +107,22 @@ public class Auxiliaries {
                 settings.getIndex(),
                 encodedQuery
         );
+    }
+
+    public static Icon createIconWithText(int count) {
+        int size = 16;
+        BufferedImage image = UIUtil.createImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        g.setColor(Color.RED);
+        g.fillOval(0, 0, size, size);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 10));
+        String text = String.valueOf(count);
+        FontMetrics metrics = g.getFontMetrics();
+        int x = (size - metrics.stringWidth(text)) / 2;
+        int y = ((size - metrics.getHeight()) / 2) + metrics.getAscent();
+        g.drawString(text, x, y);
+        g.dispose();
+        return new ImageIcon(image);
     }
 }
