@@ -27,7 +27,7 @@
         <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.LogMonitoring"/>
         <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.ErrorMonitoring"/>
         <projectConfigurable instance="com.example.maidbridge.settings.MaidBridgeSettingsConfigurable" displayName="Configure MaID-BridgE"/>
-        <postStartupActivity implementation="com.example.maidbridge.settings.LogRefreshStartupActivity"/>
+        <postStartupActivity implementation="com.example.maidbridge.monitoring.RefreshStartupActivity"/>
         <postStartupActivity implementation="com.example.maidbridge.settings.MaidBridgeSettingsNotifier"/>
 
         <notificationGroup id="MaID-BridgE Notification Group"

@@ -31,22 +31,19 @@ public class ErrorMonitoring implements LineMarkerProvider {
     private final Map<String, Map<Integer, Map<String, Integer>>> errorMap = new ConcurrentHashMap<>();
     private final Set<PsiElement> markedElements = ConcurrentHashMap.newKeySet();
 
-    public ErrorMonitoring() {
-        RefreshScheduler.addRefreshListener(() -> {
-            try {
-                fetchAndUpdateErrors();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
     @Override
     public void collectSlowLineMarkers(@NotNull List<? extends PsiElement> elements,
                                        @NotNull Collection<? super LineMarkerInfo<?>> result) {
         markedElements.clear();
 
         if (elements.isEmpty()) return;
+
+        try {
+            fetchAndUpdateErrors();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
 
         PsiFile file = elements.get(0).getContainingFile();
         if (!(file instanceof PsiJavaFile javaFile)) return;
@@ -133,10 +130,10 @@ public class ErrorMonitoring implements LineMarkerProvider {
                             target,
                             target.getTextRange(),
                             createIconWithText(totalCount),
-                            Pass.LINE_MARKERS,
                             element -> finalTooltip,
                             null,
-                            GutterIconRenderer.Alignment.LEFT
+                            GutterIconRenderer.Alignment.LEFT,
+                            () -> "maid-bridge error"
                     );
                     result.add(markerInfo);
                 }

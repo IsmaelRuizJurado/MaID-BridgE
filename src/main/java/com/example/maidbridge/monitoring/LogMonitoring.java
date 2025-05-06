@@ -89,7 +89,6 @@ public class LogMonitoring implements LineMarkerProvider {
                             element,
                             element.getTextRange(),
                             icon,
-                            Pass.LINE_MARKERS,
                             (Function<PsiElement, String>) psi -> String.format("""
                                 <html>
                                 <b>Type:</b> %s<br>
@@ -113,7 +112,8 @@ public class LogMonitoring implements LineMarkerProvider {
                                         .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
                                         .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
                             },
-                            GutterIconRenderer.Alignment.LEFT
+                            GutterIconRenderer.Alignment.LEFT,
+                            () -> "maid-bridge error"
                     );
 
                     result.add(marker);
