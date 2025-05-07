@@ -1,7 +1,6 @@
 package com.example.maidbridge.monitoring;
 
 import com.example.maidbridge.elastic.ElasticConnector;
-import com.intellij.codeHighlighting.Pass;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.notification.NotificationGroupManager;
@@ -31,7 +30,7 @@ public class LogMonitoring implements LineMarkerProvider {
 
     @Override
     public LineMarkerInfo<?> getLineMarkerInfo(PsiElement element) {
-        return null; // We use collectSlowLineMarkers
+        return null;
     }
 
     @Override
@@ -83,7 +82,7 @@ public class LogMonitoring implements LineMarkerProvider {
                 if (logMessage.contains(knownMessage)) {
                     Icon icon = createColoredIcon(getColorForLevel(data.level), data.count);
 
-                    String kibanaUrl = buildKibanaUrl(classQualifiedName, knownMessage);
+                    String kibanaUrl = buildKibanaUrlLog(classQualifiedName, knownMessage);
 
                     LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
                             element,

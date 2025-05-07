@@ -1,22 +1,27 @@
 package com.example.maidbridge.monitoring;
 
 import com.example.maidbridge.elastic.ElasticConnector;
-import com.intellij.codeHighlighting.Pass;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
@@ -25,192 +30,195 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
     @Override
     public LineMarkerInfo<?> getLineMarkerInfo(PsiElement element) {
-        return null; // We use collectSlowLineMarkers
+        return null;
     }
 
-    private final Map<String, Map<Integer, Map<String, Integer>>> errorMap = new ConcurrentHashMap<>();
-    private final Set<PsiElement> markedElements = ConcurrentHashMap.newKeySet();
+    Integer count = 0;
 
     @Override
     public void collectSlowLineMarkers(@NotNull List<? extends PsiElement> elements,
                                        @NotNull Collection<? super LineMarkerInfo<?>> result) {
-        markedElements.clear();
-
         if (elements.isEmpty()) return;
 
-        try {
-            fetchAndUpdateErrors();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
+        if(count == 0) {
+            PsiFile file = elements.get(0).getContainingFile();
+            Project project = file.getProject();
+            String classQualifiedName = getQualifiedClassName(file);
+            if (classQualifiedName == null) return;
 
-        PsiFile file = elements.get(0).getContainingFile();
-        if (!(file instanceof PsiJavaFile javaFile)) return;
+            Map<Integer, Map<String, ErrorData>> errorMapByLine = countErrorOccurrences();
+            if (errorMapByLine.isEmpty()) return;
 
-        String className = Auxiliaries.getQualifiedClassName(file);
-        if (className == null) {
-            System.out.println("⚠️ No se pudo obtener el nombre completo de la clase.");
-            return;
-        }
+            Document document = PsiDocumentManager.getInstance(project).getDocument(file);
+            if (document == null) return;
 
-        Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
-        if (document == null) {
-            System.out.println("⚠️ No se pudo obtener el documento.");
-            return;
-        }
+            for (Map.Entry<Integer, Map<String, ErrorData>> lineEntry : errorMapByLine.entrySet()) {
+                int line = lineEntry.getKey();
 
-        for (PsiClass psiClass : javaFile.getClasses()) {
-            for (PsiMethod method : psiClass.getMethods()) {
-                String key = className + "." + method.getName();
-                System.out.println("🔍 Procesando método: " + key);
+                if (line < 0 || line >= document.getLineCount()) continue;
 
-                Map<Integer, Map<String, Integer>> lineToErrors = errorMap.get(key);
-                if (lineToErrors == null) {
-                    System.out.println("❌ No se encontraron errores para este método.");
-                    continue;
+                int offset = document.getLineStartOffset(line);
+                PsiElement element = file.findElementAt(offset);
+                if (element == null) continue;
+
+                // Subir al primer elemento significativo si es necesario
+                PsiElement target = element;
+                while (target != null && !(target instanceof PsiStatement || target instanceof PsiTryStatement)) {
+                    target = target.getParent();
                 }
+                if (target == null) target = element;
 
-                System.out.println("✅ Errores encontrados en líneas: " + lineToErrors.keySet());
+                // Elegir el error más frecuente de esa línea
+                Map<String, ErrorData> messages = lineEntry.getValue();
+                Map.Entry<String, ErrorData> mostFrequent = messages.entrySet().stream()
+                        .max(Comparator.comparingInt(e -> e.getValue().count))
+                        .orElse(null);
 
-                Map<PsiElement, Map<String, Integer>> groupedByTarget = new HashMap<>();
+                if (mostFrequent == null) continue;
 
-                for (Map.Entry<Integer, Map<String, Integer>> entry : lineToErrors.entrySet()) {
-                    int line = entry.getKey();
-                    Map<String, Integer> errors = entry.getValue();
+                String message = mostFrequent.getKey();
+                ErrorData data = mostFrequent.getValue();
 
-                    if (line < 0 || line >= document.getLineCount()) {
-                        System.out.println("⚠️ Línea inválida: " + line);
-                        continue;
-                    }
+                if (data.stackTrace == null || !data.stackTrace.contains(classQualifiedName)) continue;
 
-                    int offset = document.getLineStartOffset(line);
-                    PsiElement element = file.findElementAt(offset);
-                    if (element == null) {
-                        System.out.println("⚠️ No se encontró PsiElement en línea " + line);
-                        continue;
-                    }
+                Icon icon = createColoredIcon(Color.RED, data.count);
 
-                    // Subir hasta el primer statement útil, si existe
-                    PsiElement significant = element;
-                    while (significant != null && !(significant instanceof PsiStatement || significant instanceof PsiTryStatement)) {
-                        significant = significant.getParent();
-                    }
+                String kibanaUrl = buildKibanaUrlError(data.errorMessage, data.type);
 
-                    PsiElement fallbackTarget = (significant != null) ? significant : element;
+                LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
+                        target,
+                        target.getTextRange(),
+                        icon,
+                        psi -> String.format("""
+                        <html>
+                        <b>Error Type:</b> %s<br>
+                        <b>Message:</b> %s<br>
+                        <b>Total occurrences:</b> %d<br>
+                        <b>Occurrences (last 24h):</b> %d<br>
+                        <b>Click icon to copy Kibana URL</b>
+                        </html>
+                        """,
+                                data.type,
+                                message,
+                                data.count,
+                                data.countLast24h
+                        ),
+                        (mouseEvent, psiElement) -> {
+                            StringSelection selection = new StringSelection(kibanaUrl);
+                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
 
-                    PsiTryStatement tryStmt = getEnclosingTryBlock(fallbackTarget);
-                    PsiElement target = (tryStmt != null) ? tryStmt : fallbackTarget;
+                            NotificationGroupManager.getInstance()
+                                    .getNotificationGroup("MaID-BridgE Notification Group")
+                                    .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
+                                    .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
+                        },
+                        GutterIconRenderer.Alignment.LEFT,
+                        () -> "maid-bridge error"
+                );
 
-                    groupedByTarget.computeIfAbsent(target, k -> new HashMap<>());
-                    Map<String, Integer> groupedMap = groupedByTarget.get(target);
-
-                    for (Map.Entry<String, Integer> e : errors.entrySet()) {
-                        groupedMap.merge(e.getKey(), e.getValue(), Integer::sum);
-                    }
-                }
-
-                for (Map.Entry<PsiElement, Map<String, Integer>> entry : groupedByTarget.entrySet()) {
-                    PsiElement target = entry.getKey();
-                    Map<String, Integer> exceptionCounts = entry.getValue();
-
-                    if (markedElements.contains(target)) continue;
-                    markedElements.add(target);
-
-                    int totalCount = exceptionCounts.values().stream().mapToInt(Integer::intValue).sum();
-
-                    String tooltipBody = exceptionCounts.entrySet().stream()
-                            .map(e -> e.getKey() + ": " + e.getValue() + " time" + (e.getValue() > 1 ? "s" : ""))
-                            .collect(Collectors.joining("<br>"));
-                    String finalTooltip = "<html><b>Error Detected:</b><br>" + tooltipBody + "</html>";
-
-                    System.out.println("➡️ Marcando icono en: " + target.getText().replace("\n", " ") + " con " + totalCount + " errores");
-
-                    LineMarkerInfo<PsiElement> markerInfo = new LineMarkerInfo<>(
-                            target,
-                            target.getTextRange(),
-                            createIconWithText(totalCount),
-                            element -> finalTooltip,
-                            null,
-                            GutterIconRenderer.Alignment.LEFT,
-                            () -> "maid-bridge error"
-                    );
-                    result.add(markerInfo);
-                }
+                result.add(marker);
             }
+            count++;
+        } else {
+            count = 0;
         }
     }
 
-    @Nullable
-    private PsiTryStatement getEnclosingTryBlock(PsiElement element) {
-        while (element != null && !(element instanceof PsiFile)) {
-            if (element instanceof PsiTryStatement) {
-                return (PsiTryStatement) element;
-            }
-            element = element.getParent();
-        }
-        return null;
-    }
 
-    private void fetchAndUpdateErrors() throws IOException {
+
+    public static Map<Integer, Map<String, ErrorData>> countErrorOccurrences() {
+        Map<Integer, Map<String, ErrorData>> result = new HashMap<>();
+
         String queryJson = """
         {
-          "size": 1000,
-          "_source": ["stack_trace"],
+          "size": 10000,
+          "_source": ["message", "level", "@timestamp", "stack_trace", "thread_name"],
           "query": {
-            "match": {
-              "level": "ERROR"
+            "bool": {
+              "should": [
+                { "match": { "level": "ERROR" } },
+                { "match": { "level": "DEBUG" } }
+              ]
             }
-          }
+          },
+          "sort": [{ "@timestamp": "asc" }]
         }
         """;
 
-        Map<String, Map<Integer, Map<String, Integer>>> newErrorMap = new ConcurrentHashMap<>();
+        try {
+            String responseJson = ElasticConnector.performSearch(queryJson);
+            JSONArray hits = new JSONObject(responseJson).getJSONObject("hits").getJSONArray("hits");
 
-        String responseBody = ElasticConnector.performSearch(queryJson);
+            Map<String, List<JSONObject>> debugLogsByThread = new HashMap<>();
+            List<JSONObject> errorLogs = new ArrayList<>();
 
-        // Extraer línea de stack_trace con método y ubicación
-        Pattern entryPattern = Pattern.compile("at ([\\w\\.$]+)\\.([\\w$<>]+)\\(([^:]+):(\\d+)\\)");
-        // Extraer tipo de excepción desde el principio del stack
-        Pattern exceptionPattern = Pattern.compile("^([\\w\\.$]+):?");
+            for (int i = 0; i < hits.length(); i++) {
+                JSONObject log = hits.getJSONObject(i).getJSONObject("_source");
+                String level = log.optString("level", "");
+                String thread = log.optString("thread_name", "unknown");
 
-        String[] entries = responseBody.split("\"stack_trace\"\\s*:\\s*\"");
-        for (String entry : entries) {
-            String[] lines = entry.split("\\\\r?\\\\n");
-
-            if (lines.length == 0) continue;
-
-            // Detectar tipo de excepción de la primera línea
-            String exceptionType = "Unknown";
-            Matcher exceptionMatcher = exceptionPattern.matcher(lines[0]);
-            if (exceptionMatcher.find()) {
-                String fqName = exceptionMatcher.group(1);
-                int lastDot = fqName.lastIndexOf(".");
-                exceptionType = (lastDot != -1) ? fqName.substring(lastDot + 1) : fqName;
-            }
-
-            // Buscar la primera línea del stack que contenga clase/método/línea
-            for (String line : lines) {
-                Matcher m = entryPattern.matcher(line);
-                if (m.find()) {
-                    String className = m.group(1);
-                    String methodName = m.group(2);
-                    int lineNumber = Integer.parseInt(m.group(4)) - 1;
-
-                    String key = className + "." + methodName;
-                    newErrorMap
-                            .computeIfAbsent(key, k -> new ConcurrentHashMap<>())
-                            .computeIfAbsent(lineNumber, k -> new ConcurrentHashMap<>())
-                            .merge(exceptionType, 1, Integer::sum);
-
-                    break;
+                if (level.equalsIgnoreCase("DEBUG")) {
+                    debugLogsByThread.computeIfAbsent(thread, k -> new ArrayList<>()).add(log);
+                } else if (level.equalsIgnoreCase("ERROR")) {
+                    errorLogs.add(log);
                 }
             }
+
+            for (JSONObject error : errorLogs) {
+                String thread = error.optString("thread_name", "unknown");
+                String errorTimestamp = error.optString("@timestamp", "");
+                ZonedDateTime errorTime;
+                try {
+                    errorTime = ZonedDateTime.parse(errorTimestamp);
+                } catch (Exception e) {
+                    continue;
+                }
+
+                List<JSONObject> candidates = debugLogsByThread.getOrDefault(thread, List.of());
+
+                JSONObject matchedDebug = null;
+                for (int i = candidates.size() - 1; i >= 0; i--) {
+                    JSONObject debug = candidates.get(i);
+                    try {
+                        ZonedDateTime debugTime = ZonedDateTime.parse(debug.optString("@timestamp", ""));
+                        if (!debugTime.isAfter(errorTime)) {
+                            matchedDebug = debug;
+                            break;
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                if (matchedDebug == null) continue;
+
+                String debugMessage = matchedDebug.optString("message", "");
+                String errorMessage = error.optString("message", ""); // 🆕 nuevo mensaje
+                String stackTrace = error.optString("stack_trace", "");
+                String exceptionType = extractExceptionType(stackTrace);
+                int line = extractLineNumberFromStackTrace(stackTrace, debugMessage);
+
+                boolean isRecent = errorTime.isAfter(ZonedDateTime.now(ZoneOffset.UTC).minusHours(24));
+
+                if (line >= 0) {
+                    result.computeIfAbsent(line, k -> new HashMap<>())
+                            .compute(debugMessage, (msg, existing) -> {
+                                if (existing == null) {
+                                    return new ErrorData(1, isRecent ? 1 : 0, exceptionType, stackTrace, errorMessage);
+                                } else {
+                                    existing.count++;
+                                    if (isRecent) existing.countLast24h++;
+                                    return existing;
+                                }
+                            });
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        errorMap.clear();
-        errorMap.putAll(newErrorMap);
-        System.out.println("Errores encontrados: " + errorMap);
+        return result;
     }
+
+
 }
 
