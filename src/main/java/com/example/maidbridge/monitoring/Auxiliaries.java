@@ -109,19 +109,17 @@ public class Auxiliaries {
         public int countLast24h;
         public String type;
         public String stackTrace;
-        public String errorMessage;
 
-        public ErrorData(int count, int countLast24h, String type, String stackTrace, String errorMessage) {
+        public ErrorData(int count, int countLast24h, String type, String stackTrace) {
             this.count = count;
             this.countLast24h = countLast24h;
             this.type = type;
             this.stackTrace = stackTrace;
-            this.errorMessage = errorMessage;
         }
 
     }
 
-    public static String buildKibanaUrlError(String errorMessage, String exceptionType) {
+    public static String buildKibanaUrlError(String stackTrace) {
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
         String baseUrl = settings.getKibanaURL();
 
@@ -130,7 +128,7 @@ public class Auxiliaries {
         }
 
         String encodedQuery = URLEncoder.encode(
-                String.format("level:ERROR and message:\"%s\"", errorMessage),
+                String.format("level:ERROR and stack_trace:\"%s\"", stackTrace),
                 StandardCharsets.UTF_8
         );
 

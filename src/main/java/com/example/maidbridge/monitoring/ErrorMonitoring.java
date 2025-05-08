@@ -83,7 +83,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
                 Icon icon = createColoredIcon(Color.RED, data.count);
 
-                String kibanaUrl = buildKibanaUrlError(data.errorMessage, data.type);
+                String kibanaUrl = buildKibanaUrlError(data.stackTrace);
 
                 LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
                         target,
@@ -191,7 +191,6 @@ public class ErrorMonitoring implements LineMarkerProvider {
                 if (matchedDebug == null) continue;
 
                 String debugMessage = matchedDebug.optString("message", "");
-                String errorMessage = error.optString("message", ""); // 🆕 nuevo mensaje
                 String stackTrace = error.optString("stack_trace", "");
                 String exceptionType = extractExceptionType(stackTrace);
                 int line = extractLineNumberFromStackTrace(stackTrace, debugMessage);
@@ -202,7 +201,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
                     result.computeIfAbsent(line, k -> new HashMap<>())
                             .compute(debugMessage, (msg, existing) -> {
                                 if (existing == null) {
-                                    return new ErrorData(1, isRecent ? 1 : 0, exceptionType, stackTrace, errorMessage);
+                                    return new ErrorData(1, isRecent ? 1 : 0, exceptionType, stackTrace);
                                 } else {
                                     existing.count++;
                                     if (isRecent) existing.countLast24h++;
