@@ -83,7 +83,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
                 if (data.stackTrace == null || !fqcn.equals(classQualifiedName)) continue;
 
-                Icon icon = createColoredIcon(Color.RED, data.count);
+                Icon icon = createColoredIcon(Color.RED, data.count, Color.WHITE);
 
                 String kibanaUrl = buildKibanaUrlError(data.stackTrace);
 

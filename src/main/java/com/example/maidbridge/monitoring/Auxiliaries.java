@@ -1,6 +1,7 @@
 package com.example.maidbridge.monitoring;
 
 import com.example.maidbridge.settings.MaidBridgeSettingsState;
+import com.intellij.openapi.editor.colors.EditorFontType;
 import com.intellij.psi.*;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.Nullable;
@@ -11,7 +12,12 @@ import java.awt.image.BufferedImage;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.ZonedDateTime;
+import com.intellij.openapi.editor.colors.EditorColorsManager;
+import com.intellij.openapi.editor.colors.EditorColorsScheme;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,32 +51,52 @@ public class Auxiliaries {
         };
     }
 
-    public static Icon createColoredIcon(Color color, int count) {
-        int size = 16;
-        BufferedImage image = UIUtil.createImage(size, size, BufferedImage.TYPE_INT_ARGB);
+    public static Icon createColoredIcon(Color color, int count, @Nullable Color colorText) {
+        String text;
+
+        if (count >= 100_000) {
+            text = "99K+";
+        } else if (count >= 10_000) {
+            text = (count / 1000) + "K";
+        } else if (count >= 1000) {
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+            DecimalFormat df = new DecimalFormat("#.#", symbols);
+            text = df.format(count / 1000.0) + "K";
+            if (text.length() > 4) {
+                text = text.substring(0, 3);
+            }
+        } else {
+            text = String.valueOf(count);
+        }
+
+        EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
+        Font editorFont = scheme.getFont(EditorFontType.PLAIN).deriveFont(Font.BOLD);
+        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(editorFont);
+
+        int textWidth = fm.stringWidth(text);
+        int textHeight = fm.getHeight();
+
+        int padding = 6;
+        int width = textWidth + padding * 2;
+        int height = textHeight;
+        int arc = height / 2;
+
+        BufferedImage image = UIUtil.createImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
-        // Fondo circular
         g.setColor(color);
-        g.fillOval(0, 0, size, size);
+        g.fillRoundRect(0, 0, width, height, arc, arc);
 
-        // Determinar color del texto
-        Color textColor = (color.equals(Color.ORANGE)) ? Color.BLACK : Color.WHITE;
-
-        // Texto (número)
+        Color textColor = colorText != null ? colorText : Color.BLACK;
         g.setColor(textColor);
-        g.setFont(new Font("Arial", Font.BOLD, 11));
+        g.setFont(editorFont);
 
-        String text = String.valueOf(count);
-        FontMetrics fm = g.getFontMetrics();
-        int textWidth = fm.stringWidth(text);
-        int textHeight = fm.getAscent();
-
-        int x = (size - textWidth) / 2;
-        int y = (size + textHeight) / 2 - 2;
+        int x = (width - textWidth) / 2;
+        int y = (height - fm.getDescent());
 
         g.drawString(text, x, y);
         g.dispose();
+
         return new ImageIcon(image);
     }
 

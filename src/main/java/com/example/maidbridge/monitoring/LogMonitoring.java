@@ -80,7 +80,7 @@ public class LogMonitoring implements LineMarkerProvider {
                 LogData data = entry.getValue();
 
                 if (logMessage.contains(knownMessage)) {
-                    Icon icon = createColoredIcon(getColorForLevel(data.level), data.count);
+                    Icon icon = createColoredIcon(getColorForLevel(data.level), data.count, null);
 
                     String kibanaUrl = buildKibanaUrlLog(classQualifiedName, knownMessage);
 
