@@ -35,7 +35,7 @@
                            isLogByDefault="true"/>
 
         <toolWindow
-                id="MaID-BridgE Error Table"
+                id="MaID-BridgE Errors"
                 anchor="left"
                 factoryClass="com.example.maidbridge.monitoring.ErrorTable"
                 secondary="true">

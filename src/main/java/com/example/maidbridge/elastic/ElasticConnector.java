@@ -1,6 +1,8 @@
 package com.example.maidbridge.elastic;
 
 import com.example.maidbridge.settings.MaidBridgeSettingsState;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -57,9 +59,9 @@ public class ElasticConnector {
         request.setJsonEntity(queryJson);
 
         Response response = getClient().performRequest(request);
+
         return new String(response.getEntity().getContent().readAllBytes());
     }
-
 
     public static void close() {
         try {
@@ -70,5 +72,18 @@ public class ElasticConnector {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static boolean emptyNotificationShown = false;
+
+    public static void notifyEmptyResponse() {
+        if (emptyNotificationShown) return;
+
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup("MaID-BridgE Notification Group")
+                .createNotification("No results were given by ElasticSearch, please check your configurations.", NotificationType.WARNING)
+                .notify(null);
+
+        emptyNotificationShown = true;
     }
 }

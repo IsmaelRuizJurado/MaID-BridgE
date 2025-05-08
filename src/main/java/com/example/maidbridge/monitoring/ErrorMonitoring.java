@@ -23,6 +23,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.*;
 
+import static com.example.maidbridge.elastic.ElasticConnector.notifyEmptyResponse;
 import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
 
@@ -214,6 +215,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
             }
 
         } catch (IOException e) {
+            notifyEmptyResponse();
             e.printStackTrace();
         }
 

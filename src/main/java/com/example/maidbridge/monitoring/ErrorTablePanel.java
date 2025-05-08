@@ -7,10 +7,10 @@ import com.intellij.ui.table.JBTable;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
+import javax.swing.table.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -26,6 +26,33 @@ public class ErrorTablePanel extends JPanel {
         table.getEmptyText().setText("Waiting for error analysis...");
         sorter = new TableRowSorter<>(tableModel);
         table.setRowSorter(sorter);
+
+        // Ajuste de proporción de columnas: 85% / 15%
+        table.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int totalWidth = table.getWidth();
+                table.getColumnModel().getColumn(0).setPreferredWidth((int) (totalWidth * 0.85));
+                table.getColumnModel().getColumn(1).setPreferredWidth(totalWidth - table.getColumnModel().getColumn(0).getPreferredWidth());
+            }
+        });
+
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+        table.getColumnModel().getColumn(1).setCellRenderer(rightRenderer);
+
+        TableCellRenderer originalRenderer = table.getTableHeader().getDefaultRenderer();
+
+        table.getTableHeader().setDefaultRenderer((table1, value, isSelected, hasFocus, row, column) -> {
+            Component comp = originalRenderer.getTableCellRendererComponent(table1, value, isSelected, hasFocus, row, column);
+
+            if (comp instanceof JLabel label) {
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setFont(label.getFont().deriveFont(Font.BOLD));
+            }
+
+            return comp;
+        });
 
         JBTextField searchField = new JBTextField();
         searchField.getEmptyText().setText("Filter by class name...");
@@ -43,7 +70,19 @@ public class ErrorTablePanel extends JPanel {
             }
         });
 
-        add(searchField, BorderLayout.NORTH);
+        // Crear cabecera visual en negrita
+        JLabel titleLabel = new JLabel("Total errors for each class");
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 14f));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+
+        // Panel superior con título + filtro
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(titleLabel, BorderLayout.NORTH);
+        topPanel.add(searchField, BorderLayout.SOUTH);
+
+        // Añadir al layout principal
+        add(topPanel, BorderLayout.NORTH);
         add(new JBScrollPane(table), BorderLayout.CENTER);
     }
 

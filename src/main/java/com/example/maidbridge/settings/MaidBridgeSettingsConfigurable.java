@@ -10,6 +10,8 @@ import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import static com.example.maidbridge.elastic.ElasticConnector.*;
+
 public class MaidBridgeSettingsConfigurable implements Configurable {
 
     private JTextField elasticsearchURLField;
@@ -89,9 +91,16 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
 
         int interval = (Integer) refreshIntervalSpinner.getValue();
 
+        close();
         settings.setElasticsearchURL(elasticsearchURLField.getText());
         settings.setUsername(userField.getText());
         settings.setPassword(new String(passwordField.getPassword()));
+        try {
+            getClient();
+            emptyNotificationShown = false;
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
         settings.setIndex(indexField.getText());
         settings.setKibanaURL(kibanaURLField.getText());
         settings.setRefreshInterval(interval);

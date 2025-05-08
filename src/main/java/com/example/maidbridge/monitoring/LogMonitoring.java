@@ -24,6 +24,7 @@ import java.util.Map;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 
+import static com.example.maidbridge.elastic.ElasticConnector.notifyEmptyResponse;
 import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
 public class LogMonitoring implements LineMarkerProvider {
@@ -173,6 +174,7 @@ public class LogMonitoring implements LineMarkerProvider {
                 });
             }
         } catch (IOException e) {
+            notifyEmptyResponse();
             e.printStackTrace();
         }
 
