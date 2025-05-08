@@ -33,6 +33,13 @@
         <notificationGroup id="MaID-BridgE Notification Group"
                            displayType="BALLOON"
                            isLogByDefault="true"/>
+
+        <toolWindow
+                id="MaID-BridgE Error Table"
+                anchor="left"
+                factoryClass="com.example.maidbridge.monitoring.ErrorTable"
+                secondary="true">
+        </toolWindow>
     </extensions>
 
 </idea-plugin>

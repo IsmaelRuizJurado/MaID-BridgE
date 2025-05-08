@@ -79,7 +79,9 @@ public class ErrorMonitoring implements LineMarkerProvider {
                 String message = mostFrequent.getKey();
                 ErrorData data = mostFrequent.getValue();
 
-                if (data.stackTrace == null || !data.stackTrace.contains(classQualifiedName)) continue;
+                String fqcn = extractClassNameFromStackTrace(data.stackTrace);
+
+                if (data.stackTrace == null || !fqcn.equals(classQualifiedName)) continue;
 
                 Icon icon = createColoredIcon(Color.RED, data.count);
 

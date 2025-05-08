@@ -166,4 +166,20 @@ public class Auxiliaries {
 
         return -1;
     }
+
+    public static String extractClassNameFromStackTrace(String stackTrace) {
+        if (stackTrace == null || stackTrace.isEmpty()) return null;
+
+        Pattern pattern = Pattern.compile("at\\s+([\\w.$]+)\\.\\w+\\([^:]+:\\d+\\)");
+        Matcher matcher = pattern.matcher(stackTrace);
+
+        while (matcher.find()) {
+            String fqcn = matcher.group(1);
+            if (!fqcn.startsWith("java.") && !fqcn.startsWith("jdk.") && !fqcn.startsWith("sun.")) {
+                return fqcn; // Devuelve la primera clase de tu proyecto, omitiendo las internas
+            }
+        }
+
+        return null;
+    }
 }

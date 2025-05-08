@@ -17,7 +17,7 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
     private JPasswordField passwordField;
     private JTextField indexField;
     private JTextField kibanaURLField;
-    private JTextField refreshIntervalField;
+    private JSpinner refreshIntervalSpinner;
 
     private JPanel mainPanel;
 
@@ -37,7 +37,7 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
         passwordField = new JPasswordField();
         indexField = new JTextField();
         kibanaURLField = new JTextField();
-        refreshIntervalField = new JTextField();
+        refreshIntervalSpinner = new JSpinner(new SpinnerNumberModel(15, 1, Integer.MAX_VALUE, 1));
 
         mainPanel.add(new JLabel("Elasticsearch deployment URL:"));
         mainPanel.add(elasticsearchURLField);
@@ -55,7 +55,7 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
         mainPanel.add(kibanaURLField);
 
         mainPanel.add(new JLabel("Refresh interval (seconds):"));
-        mainPanel.add(refreshIntervalField);
+        mainPanel.add(refreshIntervalSpinner);
 
         return mainPanel;
     }
@@ -68,7 +68,7 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
                 !new String(passwordField.getPassword()).equals(settings.getPassword()) ||
                 !indexField.getText().equals(String.valueOf(settings.getIndex())) ||
                 !kibanaURLField.getText().equals(settings.getKibanaURL()) ||
-                !refreshIntervalField.getText().equals(String.valueOf(settings.getRefreshInterval()));
+                !refreshIntervalSpinner.getValue().equals(settings.getRefreshInterval());
     }
 
     @Override
@@ -87,13 +87,7 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
             throw new ConfigurationException("Invalid Kibana URL.");
         }
 
-        int interval;
-        try {
-            interval = Integer.parseInt(refreshIntervalField.getText());
-            if (interval <= 0) throw new NumberFormatException();
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException("Refresh interval must be a positive integer.");
-        }
+        int interval = (Integer) refreshIntervalSpinner.getValue();
 
         settings.setElasticsearchURL(elasticsearchURLField.getText());
         settings.setUsername(userField.getText());
@@ -103,7 +97,6 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
         settings.setRefreshInterval(interval);
     }
 
-
     @Override
     public void reset() {
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
@@ -112,7 +105,7 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
         passwordField.setText(settings.getPassword());
         indexField.setText(settings.getIndex());
         kibanaURLField.setText(settings.getKibanaURL());
-        refreshIntervalField.setText(String.valueOf(settings.getRefreshInterval()));
+        refreshIntervalSpinner.setValue(settings.getRefreshInterval());
     }
 
     @Override

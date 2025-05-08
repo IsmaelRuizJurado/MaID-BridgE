@@ -2,12 +2,18 @@ package com.example.maidbridge.monitoring;
 
 import com.example.maidbridge.settings.MaidBridgeSettingsState;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.search.FileTypeIndex;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.ide.highlighter.JavaFileType;
 
-import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class RefreshScheduler {
 
@@ -15,9 +21,7 @@ public class RefreshScheduler {
     private static String lastSnapshot = "";
 
     public static void start(Project project) {
-        if (scheduler != null && !scheduler.isShutdown()) {
-            return;
-        }
+        if (scheduler != null && !scheduler.isShutdown()) return;
 
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
         int interval = settings.getRefreshInterval(); // in seconds
@@ -30,8 +34,25 @@ public class RefreshScheduler {
 
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
-            DaemonCodeAnalyzer.getInstance(project).restart();
+            Map<String, Integer> errorCounts = ApplicationManager.getApplication().runReadAction((Computable<Map<String, Integer>>) () -> {
+                Map<String, Integer> counts = new HashMap<>();
+                Collection<VirtualFile> javaFiles = FileTypeIndex.getFiles(JavaFileType.INSTANCE, GlobalSearchScope.projectScope(project));
+                for (VirtualFile vf : javaFiles) {
+                    PsiFile psiFile = PsiManager.getInstance(project).findFile(vf);
+                    if (psiFile == null) continue;
+                    counts.putAll(ErrorTableCache.countErrorOccurrencesByClass(psiFile));
+                }
+                return counts;
+            });
+
+            ErrorTableCache.update(errorCounts);
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ErrorTable.refreshData(ErrorTableCache.getAll());
+                DaemonCodeAnalyzer.getInstance(project).restart();
+            });
         }, interval, interval, TimeUnit.SECONDS);
+
     }
 
     public static void stop() {
