@@ -16,10 +16,7 @@ import org.json.JSONObject;
 import javax.swing.*;
 import java.io.IOException;
 import java.time.ZonedDateTime;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
@@ -42,7 +39,7 @@ public class LogMonitoring implements LineMarkerProvider {
         PsiFile file = elements.get(0).getContainingFile();
         String classQualifiedName = getQualifiedClassName(file);
         if (classQualifiedName == null) return;
-        Map<String, LogData> logCounts = countLogOccurrences(file);
+        Map<LogKey, LogData> logCounts = countLogOccurrences(file);
 
         for (PsiElement element : elements) {
             if (!(element instanceof PsiMethodCallExpression callExpr)) continue;
@@ -76,14 +73,22 @@ public class LogMonitoring implements LineMarkerProvider {
 
             if (logLevel == null || logMessage == null) continue;
 
-            for (Map.Entry<String, LogData> entry : logCounts.entrySet()) {
-                String knownMessage = entry.getKey();
+            for (Map.Entry<LogKey, LogData> entry : logCounts.entrySet()) {
+                LogKey key = entry.getKey();
                 LogData data = entry.getValue();
 
-                if (logMessage.contains(knownMessage)) {
-                    Icon icon = createColoredIcon(getColorForLevel(data.level), data.count, null);
+                String level;
+                if(Objects.equals(key.level, "WARN")){
+                    level = "WARNING";
+                } else if (Objects.equals(key.level, "ERROR")) {
+                    level = "SEVERE";
+                } else{
+                    level = "INFO";
+                }
+                if (logMessage.equals(key.message) && logLevel.equals(level)) {
+                    Icon icon = createColoredIcon(getColorForLevel(key.level), data.count, null);
 
-                    String kibanaUrl = buildKibanaUrlLog(classQualifiedName, knownMessage);
+                    String kibanaUrl = buildKibanaUrlLog(classQualifiedName, key.message, key.level);
 
                     LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
                             element,
@@ -98,8 +103,8 @@ public class LogMonitoring implements LineMarkerProvider {
                                 <b>Click icon to copy Kibana URL</b>
                                 </html>
                                 """,
-                                    data.level,
-                                    knownMessage,
+                                    key.level,
+                                    key.message,
                                     data.count,
                                     data.countLast24h
                             ),
@@ -124,8 +129,8 @@ public class LogMonitoring implements LineMarkerProvider {
     }
 
 
-    private static Map<String, LogData> countLogOccurrences(PsiFile sourceFile) {
-        Map<String, LogData> counts = new HashMap<>();
+    private static Map<LogKey, LogData> countLogOccurrences(PsiFile sourceFile) {
+        Map<LogKey, LogData> counts = new HashMap<>();
 
         String classQualifiedName = getQualifiedClassName(sourceFile);
         if (classQualifiedName == null) return counts;
@@ -140,7 +145,7 @@ public class LogMonitoring implements LineMarkerProvider {
                 }
               },
               "size": 10000,
-              "_source": ["message", "logger_name", "level", "@timestamp"]
+              "_source": ["message", "logger_name", "level", "@timestamp", "stack_trace"]
             }
             """, classQualifiedName);
 
@@ -154,8 +159,9 @@ public class LogMonitoring implements LineMarkerProvider {
 
                 String message = source.optString("message");
                 String level = source.optString("level");
+                LogKey key = new LogKey(message,level);
 
-                counts.compute(message, (k, v) -> {
+                counts.compute(key, (k, v) -> {
                     boolean isRecent = false;
                     String timestampStr = source.optString("@timestamp");
                     if (timestampStr != null && !timestampStr.isEmpty()) {
@@ -167,7 +173,7 @@ public class LogMonitoring implements LineMarkerProvider {
                         }
                     }
 
-                    if (v == null) return new LogData(1, level, isRecent ? 1 : 0);
+                    if (v == null) return new LogData(1, isRecent ? 1 : 0);
                     v.count++;
                     if (isRecent) v.countLast24h++;
                     return v;

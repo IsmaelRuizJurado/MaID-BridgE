@@ -41,7 +41,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
                                        @NotNull Collection<? super LineMarkerInfo<?>> result) {
         if (elements.isEmpty()) return;
 
-        if(count == 0) {
+        if (count == 0) {
             PsiFile file = elements.get(0).getContainingFile();
             Project project = file.getProject();
             String classQualifiedName = getQualifiedClassName(file);
@@ -58,16 +58,8 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
                 if (line < 0 || line >= document.getLineCount()) continue;
 
-                int offset = document.getLineStartOffset(line);
-                PsiElement element = file.findElementAt(offset);
+                PsiElement element = file.findElementAt(document.getLineStartOffset(line));
                 if (element == null) continue;
-
-                // Subir al primer elemento significativo si es necesario
-                PsiElement target = element;
-                while (target != null && !(target instanceof PsiStatement || target instanceof PsiTryStatement)) {
-                    target = target.getParent();
-                }
-                if (target == null) target = element;
 
                 // Elegir el error más frecuente de esa línea
                 Map<String, ErrorData> messages = lineEntry.getValue();
@@ -89,18 +81,18 @@ public class ErrorMonitoring implements LineMarkerProvider {
                 String kibanaUrl = buildKibanaUrlError(data.stackTrace);
 
                 LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
-                        target,
-                        target.getTextRange(),
+                        element,
+                        element.getTextRange(),
                         icon,
                         psi -> String.format("""
-                        <html>
-                        <b>Error Type:</b> %s<br>
-                        <b>Message:</b> %s<br>
-                        <b>Total occurrences:</b> %d<br>
-                        <b>Occurrences (last 24h):</b> %d<br>
-                        <b>Click icon to copy Kibana URL</b>
-                        </html>
-                        """,
+                    <html>
+                    <b>Error Type:</b> %s<br>
+                    <b>Message:</b> %s<br>
+                    <b>Total occurrences:</b> %d<br>
+                    <b>Occurrences (last 24h):</b> %d<br>
+                    <b>Click icon to copy Kibana URL</b>
+                    </html>
+                    """,
                                 data.type,
                                 message,
                                 data.count,

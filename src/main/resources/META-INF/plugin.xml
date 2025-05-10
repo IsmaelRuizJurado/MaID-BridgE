@@ -35,10 +35,16 @@
                            isLogByDefault="true"/>
 
         <toolWindow
-                id="MaID-BridgE Errors"
+                id="MaID-BridgE Total Errors"
                 anchor="left"
-                factoryClass="com.example.maidbridge.monitoring.ErrorTable"
-                secondary="true">
+                factoryClass="com.example.maidbridge.monitoring.TotalErrorsTable"
+                secondary="false">
+        </toolWindow>
+        <toolWindow
+                id="MaID-BridgE Error Details"
+                anchor="left"
+                factoryClass="com.example.maidbridge.monitoring.ErrorsTable"
+                secondary="false">
         </toolWindow>
     </extensions>
 

@@ -9,13 +9,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.*;
 
 import static com.example.maidbridge.monitoring.Auxiliaries.*;
 
-public class ErrorTableCache {
+public class TotalErrorsTableCache {
     private static final Map<String, Integer> errorCountByClass = new ConcurrentHashMap<>();
 
     public static void update(Map<String, Integer> newData) {

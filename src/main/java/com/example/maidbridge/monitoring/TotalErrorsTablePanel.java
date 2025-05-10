@@ -11,14 +11,18 @@ import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class ErrorTablePanel extends JPanel {
+public class TotalErrorsTablePanel extends JPanel {
     private final DefaultTableModel tableModel;
     private final TableRowSorter<TableModel> sorter;
 
-    public ErrorTablePanel() {
+    public TotalErrorsTablePanel() {
         super(new BorderLayout());
 
         tableModel = new DefaultTableModel(new Object[]{"Class", "Errors"}, 0);
@@ -26,6 +30,30 @@ public class ErrorTablePanel extends JPanel {
         table.getEmptyText().setText("Waiting for error analysis...");
         sorter = new TableRowSorter<>(tableModel);
         table.setRowSorter(sorter);
+
+        // Orden inicial: errores descendente, clases ascendente
+        sorter.setComparator(0, Comparator.naturalOrder());
+        sorter.setComparator(1, Comparator.naturalOrder());
+        sorter.setSortKeys(List.of(
+                new RowSorter.SortKey(1, SortOrder.DESCENDING),
+                new RowSorter.SortKey(0, SortOrder.ASCENDING)
+        ));
+        sorter.sort();
+
+        // Desactivar orden por clic
+        JTableHeader header = table.getTableHeader();
+        header.setReorderingAllowed(false);
+        header.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Desactiva la ordenación al hacer clic
+                e.consume();
+                sorter.setSortKeys(List.of(
+                        new RowSorter.SortKey(1, SortOrder.DESCENDING),
+                        new RowSorter.SortKey(0, SortOrder.ASCENDING)
+                ));
+            }
+        });
 
         // Ajuste de proporción de columnas: 85% / 15%
         table.addComponentListener(new ComponentAdapter() {
@@ -71,7 +99,7 @@ public class ErrorTablePanel extends JPanel {
         });
 
         // Crear cabecera visual en negrita
-        JLabel titleLabel = new JLabel("Total errors for each class");
+        JLabel titleLabel = new JLabel("Total errors for each class ordered");
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 14f));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         titleLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
@@ -92,7 +120,7 @@ public class ErrorTablePanel extends JPanel {
             errorCountByClass.forEach((className, count) ->
                     tableModel.addRow(new Object[]{className, count})
             );
+            sorter.sort();
         });
     }
 }
-

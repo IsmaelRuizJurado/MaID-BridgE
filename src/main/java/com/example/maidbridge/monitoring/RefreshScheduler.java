@@ -40,19 +40,19 @@ public class RefreshScheduler {
                 for (VirtualFile vf : javaFiles) {
                     PsiFile psiFile = PsiManager.getInstance(project).findFile(vf);
                     if (psiFile == null) continue;
-                    counts.putAll(ErrorTableCache.countErrorOccurrencesByClass(psiFile));
+                    counts.putAll(TotalErrorsTableCache.countErrorOccurrencesByClass(psiFile));
                 }
                 return counts;
             });
 
-            ErrorTableCache.update(errorCounts);
+            TotalErrorsTableCache.update(errorCounts);
 
             ApplicationManager.getApplication().invokeLater(() -> {
-                ErrorTable.refreshData(ErrorTableCache.getAll());
+                TotalErrorsTable.refreshData(TotalErrorsTableCache.getAll());
+                ErrorsTableCache.computeDetailedErrorData();
                 DaemonCodeAnalyzer.getInstance(project).restart();
             });
         }, interval, interval, TimeUnit.SECONDS);
-
     }
 
     public static void stop() {

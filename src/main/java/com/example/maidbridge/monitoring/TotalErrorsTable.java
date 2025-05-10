@@ -10,13 +10,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
-public class ErrorTable implements ToolWindowFactory, DumbAware {
+public class TotalErrorsTable implements ToolWindowFactory, DumbAware {
 
-    private static ErrorTablePanel panel;
+    private static TotalErrorsTablePanel panel;
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        panel = new ErrorTablePanel(); // clase que extiende JPanel
+        panel = new TotalErrorsTablePanel(); // clase que extiende JPanel
 
         ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(panel, "", false);

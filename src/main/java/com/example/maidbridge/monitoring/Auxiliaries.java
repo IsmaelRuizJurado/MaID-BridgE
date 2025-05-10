@@ -18,6 +18,7 @@ import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,14 +33,35 @@ public class Auxiliaries {
     //Métodos para Logs
     public static class LogData {
         public int count;
-        public String level;
         public int countLast24h;
 
-        public LogData(int count, String level, int countLast24h) {
+        public LogData(int count, int countLast24h) {
             this.count = count;
-            this.level = level;
             this.countLast24h = countLast24h;
         }
+    }
+
+    public static class LogKey {
+        public String message;
+        public String level;
+
+        public LogKey(String message, String level) {
+            this.message = message;
+            this.level = level;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof LogKey other)) return false;
+            return Objects.equals(message, other.message) && Objects.equals(level, other.level);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(message, level);
+        }
+
     }
 
     public static Color getColorForLevel(String level) {
@@ -108,7 +130,7 @@ public class Auxiliaries {
         return expr.getText().replace("\"", "");
     }
 
-    public static String buildKibanaUrlLog(String loggerName, String message) {
+    public static String buildKibanaUrlLog(String loggerName, String message, String level) {
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
         String baseUrl = settings.getKibanaURL();
 
@@ -117,7 +139,7 @@ public class Auxiliaries {
         }
 
         String encodedQuery = URLEncoder.encode(
-                String.format("logger_name:\"%s\" and message:\"%s\"", loggerName, message),
+                String.format("logger_name:\"%s\" and message:\"%s\" and level:\"%s\"", loggerName, message, level),
                 StandardCharsets.UTF_8
         );
 
