@@ -7,6 +7,8 @@ import com.intellij.openapi.components.Storage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.ZonedDateTime;
+
 @Service
 @State(name = "MaidBridgeSettings", storages = @Storage("MaidBridgeSettings.xml"))
 public final class MaidBridgeSettingsState implements PersistentStateComponent<MaidBridgeSettingsState.State> {
@@ -20,6 +22,7 @@ public final class MaidBridgeSettingsState implements PersistentStateComponent<M
         public String index = "spring-petclinic-logs";
         public String kibanaURL = "http://localhost:5601/";
         public int refreshInterval = 15;
+        public String startTime = ZonedDateTime.now().minusHours(24).toString();
     }
 
     public static MaidBridgeSettingsState getInstance() {
@@ -85,5 +88,17 @@ public final class MaidBridgeSettingsState implements PersistentStateComponent<M
     public void setRefreshInterval(int interval) {
         state.refreshInterval = interval;
     }
+
+    public ZonedDateTime getStartTime() {
+        if (state.startTime == null || state.startTime.isEmpty()) {
+            return ZonedDateTime.now().minusHours(24);
+        }
+        return ZonedDateTime.parse(state.startTime);
+    }
+
+    public void setStartTime(ZonedDateTime zdt) {
+        state.startTime = zdt.toString();
+    }
+
 
 }

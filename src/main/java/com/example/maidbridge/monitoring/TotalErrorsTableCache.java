@@ -56,7 +56,6 @@ public class TotalErrorsTableCache {
                 String fqcn = extractClassNameFromStackTrace(stackTrace);
 
                 if (fqcn != null && fqcn.equals(classQualifiedName)) {
-                    System.out.println("Clase extraída: " + fqcn);
                     totalErrors++;
                 }
             }

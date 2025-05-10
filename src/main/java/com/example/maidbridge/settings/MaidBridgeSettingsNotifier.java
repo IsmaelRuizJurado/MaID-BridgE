@@ -26,23 +26,33 @@ public class MaidBridgeSettingsNotifier implements ProjectActivity {
                         settings.getPassword() != null && !settings.getPassword().isEmpty() &&
                         settings.getIndex() != null && !settings.getIndex().isEmpty() &&
                         settings.getKibanaURL() != null && !settings.getKibanaURL().isEmpty();
+
         String content;
         NotificationType type;
 
+        String minutes = String.format("%02d", settings.getStartTime().getMinute());
+
         if (isConfigured) {
             content = String.format(
-                    "<html>Current MaID-BridgE configuration:<br>- Elasticsearch URL: %s<br>- Index: %s<br>- Kibana URL: %s<br>- Refresh Interval: %d s</html>",
+                    "<html>Current MaID-BridgE configuration:<br>" +
+                            "- Elasticsearch URL: %s<br>" +
+                            "- Index: %s<br>" +
+                            "- Kibana URL: %s<br>" +
+                            "- Error Time Range Start: %d/%d/%d %d:%s</html>",
                     settings.getElasticsearchURL(),
                     settings.getIndex(),
                     settings.getKibanaURL(),
-                    settings.getRefreshInterval()
+                    settings.getStartTime().getYear(),
+                    settings.getStartTime().getMonthValue(),
+                    settings.getStartTime().getDayOfMonth(),
+                    settings.getStartTime().getHour(),
+                    minutes
             );
             type = NotificationType.INFORMATION;
         } else {
             content = "MaID-BridgE plugin is not fully configured. Please configure it now.";
             type = NotificationType.WARNING;
         }
-
 
         Notification notification = NotificationGroupManager.getInstance()
                 .getNotificationGroup("MaID-BridgE Notification Group")

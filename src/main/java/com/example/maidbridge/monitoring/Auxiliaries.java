@@ -1,8 +1,16 @@
 package com.example.maidbridge.monitoring;
 
 import com.example.maidbridge.settings.MaidBridgeSettingsState;
+import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.colors.EditorFontType;
+import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
+import com.intellij.psi.search.FileTypeIndex;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,8 +25,8 @@ import com.intellij.openapi.editor.colors.EditorColorsScheme;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Locale;
-import java.util.Objects;
+import java.time.ZonedDateTime;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -157,17 +165,42 @@ public class Auxiliaries {
         public int countLast24h;
         public String type;
         public String stackTrace;
+        public ZonedDateTime errorTime;
 
-        public ErrorData(int count, int countLast24h, String type, String stackTrace) {
+        public ErrorData(int count, int countLast24h, String type, String stackTrace, ZonedDateTime errorTime) {
             this.count = count;
             this.countLast24h = countLast24h;
             this.type = type;
             this.stackTrace = stackTrace;
+            this.errorTime = errorTime;
         }
-
     }
 
-    public static String buildKibanaUrlError(String stackTrace) {
+    public static class MethodKey {
+        public final String classQualifiedName;
+        public final String methodName;
+
+        public MethodKey(String classQualifiedName, String methodName) {
+            this.classQualifiedName = classQualifiedName;
+            this.methodName = methodName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MethodKey)) return false;
+            MethodKey that = (MethodKey) o;
+            return Objects.equals(classQualifiedName, that.classQualifiedName) &&
+                    Objects.equals(methodName, that.methodName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(classQualifiedName, methodName);
+        }
+    }
+
+    public static String buildKibanaUrlError(String exceptionType, String methodName) {
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
         String baseUrl = settings.getKibanaURL();
 
@@ -175,10 +208,9 @@ public class Auxiliaries {
             baseUrl += "/";
         }
 
-        String encodedQuery = URLEncoder.encode(
-                String.format("level:ERROR and stack_trace:\"%s\"", stackTrace),
-                StandardCharsets.UTF_8
-        );
+        // Construir query segura para Kibana
+        String query = String.format("level:ERROR AND stack_trace: *%s* AND stack_trace: *%s* ", exceptionType, methodName);
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
 
         return String.format(
                 "%sapp/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:now-24h,to:now))",
@@ -190,44 +222,92 @@ public class Auxiliaries {
 
     public static String extractExceptionType(String stackTrace) {
         if (stackTrace == null || stackTrace.isBlank()) return "Unknown";
-        String[] lines = stackTrace.split("\\\\r?\\\\n");
-        if (lines.length == 0) return "Unknown";
-
-        String firstLine = lines[0];
+        int end = stackTrace.indexOf('\n');
+        String firstLine = (end != -1 ? stackTrace.substring(0, end) : stackTrace).trim();
         int colon = firstLine.indexOf(":");
         String raw = colon != -1 ? firstLine.substring(0, colon) : firstLine;
         int lastDot = raw.lastIndexOf(".");
         return (lastDot != -1) ? raw.substring(lastDot + 1) : raw;
     }
 
+    private static final Pattern LINE_NUMBER_PATTERN = Pattern.compile("\\(([^:]+):(\\d+)\\)");
+
     public static int extractLineNumberFromStackTrace(String stackTrace, String fallbackMessage) {
         if (stackTrace == null || stackTrace.isBlank()) return -1;
 
-        Pattern pattern = Pattern.compile("at ([\\w.$]+)\\.[\\w$<>]+\\(([^:]+):(\\d+)\\)");
-        Matcher matcher = pattern.matcher(stackTrace);
-
+        Matcher matcher = LINE_NUMBER_PATTERN.matcher(stackTrace);
         while (matcher.find()) {
             try {
-                return Integer.parseInt(matcher.group(3)) - 1; // Convert to 0-based
-            } catch (Exception ignored) {}
+                return Integer.parseInt(matcher.group(2)) - 1;
+            } catch (NumberFormatException ignored) {}
         }
-
         return -1;
     }
+
+    private static final Pattern CLASS_NAME_PATTERN = Pattern.compile("at\\s+([\\w.$]+)\\.\\w+\\([^:]+:\\d+\\)");
 
     public static String extractClassNameFromStackTrace(String stackTrace) {
         if (stackTrace == null || stackTrace.isEmpty()) return null;
 
-        Pattern pattern = Pattern.compile("at\\s+([\\w.$]+)\\.\\w+\\([^:]+:\\d+\\)");
-        Matcher matcher = pattern.matcher(stackTrace);
-
+        Matcher matcher = CLASS_NAME_PATTERN.matcher(stackTrace);
         while (matcher.find()) {
             String fqcn = matcher.group(1);
             if (!fqcn.startsWith("java.") && !fqcn.startsWith("jdk.") && !fqcn.startsWith("sun.")) {
-                return fqcn; // Devuelve la primera clase de tu proyecto, omitiendo las internas
+                return fqcn;
             }
         }
-
         return null;
     }
+
+    public static class StackTraceInfo {
+        public final String fqcn;
+        public final String methodName;
+        public final int line;
+        public final String exceptionType;
+
+        public StackTraceInfo(String fqcn, String methodName, int line, String exceptionType) {
+            this.fqcn = fqcn;
+            this.methodName = methodName;
+            this.line = line;
+            this.exceptionType = exceptionType;
+        }
+    }
+
+    public static StackTraceInfo parseStackTrace(String stackTrace, Map<String, PsiFile> fqcnToFile) {
+        Pattern pattern = Pattern.compile("at\\s+([\\w.$]+)\\.([\\w$<>]+)\\(([^:]+):(\\d+)\\)");
+        Matcher matcher = pattern.matcher(stackTrace);
+        while (matcher.find()) {
+            String fqcn = matcher.group(1);
+            String methodName = matcher.group(2);
+            int line = Integer.parseInt(matcher.group(4)) - 1;
+
+            if (!fqcn.startsWith("java.") && fqcnToFile.containsKey(fqcn)) {
+                String exceptionType = extractExceptionType(stackTrace);
+                return new StackTraceInfo(fqcn, methodName, line, exceptionType);
+            }
+        }
+        return null;
+    }
+
+    public static Map<String, PsiFile> preloadFqcnMap(Project project) {
+        Map<String, PsiFile> map = new HashMap<>();
+        ApplicationManager.getApplication().runReadAction(() -> {
+            if (DumbService.isDumb(project)) return;
+
+            Collection<VirtualFile> files = FileTypeIndex.getFiles(JavaFileType.INSTANCE, GlobalSearchScope.projectScope(project));
+            PsiManager psiManager = PsiManager.getInstance(project);
+
+            for (VirtualFile vf : files) {
+                PsiFile file = psiManager.findFile(vf);
+                if (file instanceof PsiJavaFile javaFile) {
+                    String pkg = javaFile.getPackageName();
+                    for (PsiClass cls : javaFile.getClasses()) {
+                        map.put(pkg + "." + cls.getName(), file);
+                    }
+                }
+            }
+        });
+        return map;
+    }
+
 }

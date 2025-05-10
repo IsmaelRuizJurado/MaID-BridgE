@@ -1,11 +1,11 @@
 package com.example.maidbridge.monitoring;
 
 import com.example.maidbridge.elastic.ElasticConnector;
+import com.example.maidbridge.settings.MaidBridgeSettingsState;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
@@ -34,6 +34,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
         return null;
     }
 
+    //The G.O.A.T.
     Integer count = 0;
 
     @Override
@@ -41,174 +42,160 @@ public class ErrorMonitoring implements LineMarkerProvider {
                                        @NotNull Collection<? super LineMarkerInfo<?>> result) {
         if (elements.isEmpty()) return;
 
-        if (count == 0) {
+        MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
+
+        if(count==0){
             PsiFile file = elements.get(0).getContainingFile();
             Project project = file.getProject();
             String classQualifiedName = getQualifiedClassName(file);
             if (classQualifiedName == null) return;
 
-            Map<Integer, Map<String, ErrorData>> errorMapByLine = countErrorOccurrences();
-            if (errorMapByLine.isEmpty()) return;
+            Map<MethodKey, Map<String, ErrorData>> errorsByMethod = countErrorOccurrences(project);
+            if (errorsByMethod.isEmpty()) return;
 
-            Document document = PsiDocumentManager.getInstance(project).getDocument(file);
-            if (document == null) return;
+            // Iterar sobre todos los métodos del archivo
+            file.accept(new JavaRecursiveElementVisitor() {
+                @Override
+                public void visitMethod(PsiMethod method) {
+                    super.visitMethod(method);
 
-            for (Map.Entry<Integer, Map<String, ErrorData>> lineEntry : errorMapByLine.entrySet()) {
-                int line = lineEntry.getKey();
+                    String methodName = method.getName();
+                    MethodKey key = new MethodKey(classQualifiedName, methodName);
+                    Map<String, ErrorData> errors = errorsByMethod.get(key);
+                    if (errors == null || errors.isEmpty()) return;
 
-                if (line < 0 || line >= document.getLineCount()) continue;
+                    for (Map.Entry<String, ErrorData> entry : errors.entrySet()) {
+                        String message = entry.getKey();
+                        ErrorData data = entry.getValue();
 
-                PsiElement element = file.findElementAt(document.getLineStartOffset(line));
-                if (element == null) continue;
+                        if (!data.errorTime.isAfter(settings.getStartTime())){
+                            continue;
+                        }
 
-                // Elegir el error más frecuente de esa línea
-                Map<String, ErrorData> messages = lineEntry.getValue();
-                Map.Entry<String, ErrorData> mostFrequent = messages.entrySet().stream()
-                        .max(Comparator.comparingInt(e -> e.getValue().count))
-                        .orElse(null);
+                        if (data.stackTrace == null || !extractClassNameFromStackTrace(data.stackTrace).equals(classQualifiedName)) {
+                            continue;
+                        }
 
-                if (mostFrequent == null) continue;
+                        Icon icon = createColoredIcon(Color.RED, data.count, Color.WHITE);
+                        String kibanaUrl = buildKibanaUrlError(data.type, key.methodName);
 
-                String message = mostFrequent.getKey();
-                ErrorData data = mostFrequent.getValue();
+                        LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
+                                method.getNameIdentifier(),
+                                method.getNameIdentifier().getTextRange(),
+                                icon,
+                                psi -> String.format("""
+                        <html>
+                        <b>Error Type:</b> %s<br>
+                        <b>Message:</b> %s<br>
+                        <b>Total occurrences:</b> %d<br>
+                        <b>Occurrences (last 24h):</b> %d<br>
+                        <b>Click icon to copy Kibana URL</b>
+                        </html>
+                        """,
+                                        data.type,
+                                        message,
+                                        data.count,
+                                        data.countLast24h
+                                ),
+                                (mouseEvent, psiElement) -> {
+                                    StringSelection selection = new StringSelection(kibanaUrl);
+                                    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+                                    NotificationGroupManager.getInstance()
+                                            .getNotificationGroup("MaID-BridgE Notification Group")
+                                            .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
+                                            .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
+                                },
+                                GutterIconRenderer.Alignment.LEFT,
+                                () -> "maid-bridge error"
+                        );
 
-                String fqcn = extractClassNameFromStackTrace(data.stackTrace);
-
-                if (data.stackTrace == null || !fqcn.equals(classQualifiedName)) continue;
-
-                Icon icon = createColoredIcon(Color.RED, data.count, Color.WHITE);
-
-                String kibanaUrl = buildKibanaUrlError(data.stackTrace);
-
-                LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
-                        element,
-                        element.getTextRange(),
-                        icon,
-                        psi -> String.format("""
-                    <html>
-                    <b>Error Type:</b> %s<br>
-                    <b>Message:</b> %s<br>
-                    <b>Total occurrences:</b> %d<br>
-                    <b>Occurrences (last 24h):</b> %d<br>
-                    <b>Click icon to copy Kibana URL</b>
-                    </html>
-                    """,
-                                data.type,
-                                message,
-                                data.count,
-                                data.countLast24h
-                        ),
-                        (mouseEvent, psiElement) -> {
-                            StringSelection selection = new StringSelection(kibanaUrl);
-                            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-
-                            NotificationGroupManager.getInstance()
-                                    .getNotificationGroup("MaID-BridgE Notification Group")
-                                    .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
-                                    .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
-                        },
-                        GutterIconRenderer.Alignment.LEFT,
-                        () -> "maid-bridge error"
-                );
-
-                result.add(marker);
-            }
+                        result.add(marker);
+                    }
+                }
+            });
             count++;
         } else {
             count = 0;
         }
+
     }
 
-
-
-    public static Map<Integer, Map<String, ErrorData>> countErrorOccurrences() {
-        Map<Integer, Map<String, ErrorData>> result = new HashMap<>();
+    public static Map<MethodKey, Map<String, ErrorData>> countErrorOccurrences(Project project) {
+        Map<MethodKey, Map<String, ErrorData>> result = new HashMap<>();
 
         String queryJson = """
-        {
-          "size": 10000,
-          "_source": ["message", "level", "@timestamp", "stack_trace", "thread_name"],
-          "query": {
-            "bool": {
-              "should": [
-                { "match": { "level": "ERROR" } },
-                { "match": { "level": "DEBUG" } }
-              ]
-            }
-          },
-          "sort": [{ "@timestamp": "asc" }]
+    {
+      "size": 10000,
+      "_source": ["message", "@timestamp", "stack_trace"],
+      "query": {
+        "bool": {
+          "should": [
+            { "match": { "level": "ERROR" } }
+          ]
         }
-        """;
+      },
+      "sort": [{ "@timestamp": "asc" }]
+    }
+    """;
 
         try {
             String responseJson = ElasticConnector.performSearch(queryJson);
             JSONArray hits = new JSONObject(responseJson).getJSONObject("hits").getJSONArray("hits");
 
-            Map<String, List<JSONObject>> debugLogsByThread = new HashMap<>();
-            List<JSONObject> errorLogs = new ArrayList<>();
+            MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
+            ZonedDateTime startTime = settings.getStartTime();
+            Map<String, PsiFile> fqcnToFile = preloadFqcnMap(project);
 
             for (int i = 0; i < hits.length(); i++) {
-                JSONObject log = hits.getJSONObject(i).getJSONObject("_source");
-                String level = log.optString("level", "");
-                String thread = log.optString("thread_name", "unknown");
-
-                if (level.equalsIgnoreCase("DEBUG")) {
-                    debugLogsByThread.computeIfAbsent(thread, k -> new ArrayList<>()).add(log);
-                } else if (level.equalsIgnoreCase("ERROR")) {
-                    errorLogs.add(log);
-                }
-            }
-
-            for (JSONObject error : errorLogs) {
-                String thread = error.optString("thread_name", "unknown");
-                String errorTimestamp = error.optString("@timestamp", "");
-                ZonedDateTime errorTime;
                 try {
-                    errorTime = ZonedDateTime.parse(errorTimestamp);
-                } catch (Exception e) {
-                    continue;
-                }
+                    if (result.size() > 10000) break;
 
-                List<JSONObject> candidates = debugLogsByThread.getOrDefault(thread, List.of());
+                    JSONObject log = hits.getJSONObject(i).getJSONObject("_source");
+                    ZonedDateTime errorTime = ZonedDateTime.parse(log.optString("@timestamp", ""));
+                    if (!errorTime.isAfter(startTime)) continue;
 
-                JSONObject matchedDebug = null;
-                for (int i = candidates.size() - 1; i >= 0; i--) {
-                    JSONObject debug = candidates.get(i);
-                    try {
-                        ZonedDateTime debugTime = ZonedDateTime.parse(debug.optString("@timestamp", ""));
-                        if (!debugTime.isAfter(errorTime)) {
-                            matchedDebug = debug;
-                            break;
-                        }
-                    } catch (Exception ignored) {}
-                }
+                    String stackTrace = log.optString("stack_trace", "");
+                    if (stackTrace == null || stackTrace.isBlank()) continue;
 
-                if (matchedDebug == null) continue;
+                    StackTraceInfo info = parseStackTrace(stackTrace, fqcnToFile);
+                    if (info == null || info.fqcn == null || info.methodName == null || info.line < 0) continue;
 
-                String debugMessage = matchedDebug.optString("message", "");
-                String stackTrace = error.optString("stack_trace", "");
-                String exceptionType = extractExceptionType(stackTrace);
-                int line = extractLineNumberFromStackTrace(stackTrace, debugMessage);
+                    String rawMessage = log.optString("message", "");
+                    String extractedMessage;
+                    int start = rawMessage.indexOf("threw exception [");
+                    int end = rawMessage.indexOf(']', start);
+                    if (start != -1 && end != -1 && end > start) {
+                        extractedMessage = rawMessage.substring(start + 17, end);
+                    } else {
+                        extractedMessage = rawMessage;
+                    }
 
-                boolean isRecent = errorTime.isAfter(ZonedDateTime.now(ZoneOffset.UTC).minusHours(24));
+                    MethodKey key = new MethodKey(info.fqcn, info.methodName);
+                    boolean isRecent = errorTime.isAfter(ZonedDateTime.now(ZoneOffset.UTC).minusHours(24));
 
-                if (line >= 0) {
-                    result.computeIfAbsent(line, k -> new HashMap<>())
-                            .compute(debugMessage, (msg, existing) -> {
+                    result.computeIfAbsent(key, k -> new HashMap<>())
+                            .compute(extractedMessage, (msg, existing) -> {
                                 if (existing == null) {
-                                    return new ErrorData(1, isRecent ? 1 : 0, exceptionType, stackTrace);
+                                    return new ErrorData(1, isRecent ? 1 : 0, info.exceptionType, stackTrace, errorTime);
                                 } else {
                                     existing.count++;
                                     if (isRecent) existing.countLast24h++;
                                     return existing;
                                 }
                             });
+
+                } catch (Exception inner) {
+                    inner.printStackTrace();
                 }
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             notifyEmptyResponse();
             e.printStackTrace();
+            NotificationGroupManager.getInstance()
+                    .getNotificationGroup("MaID-BridgE Notification Group")
+                    .createNotification("Error al procesar logs de errores desde Elasticsearch", NotificationType.ERROR)
+                    .notify(project);
         }
 
         return result;

@@ -4,7 +4,6 @@ import com.example.maidbridge.elastic.ElasticConnector;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -26,7 +25,7 @@ public class ErrorsTableCache {
         }
     }
 
-    public static List<ErrorsTablePanel.ErrorsTableEntry> computeDetailedErrorData() {
+    public static void computeDetailedErrorData() {
         List<ErrorsTablePanel.ErrorsTableEntry> result = new ArrayList<>();
 
         String queryJson = """
@@ -46,21 +45,21 @@ public class ErrorsTableCache {
     """;
 
         try {
-            String responseJson = ElasticConnector.performSearch(queryJson);
-            JSONArray hits = new JSONObject(responseJson).getJSONObject("hits").getJSONArray("hits");
+            JSONArray hits = new JSONObject(ElasticConnector.performSearch(queryJson))
+                    .getJSONObject("hits").getJSONArray("hits");
 
             Map<String, List<JSONObject>> debugLogsByThread = new HashMap<>();
             List<JSONObject> errorLogs = new ArrayList<>();
 
             for (int i = 0; i < hits.length(); i++) {
-                JSONObject log = hits.getJSONObject(i).getJSONObject("_source");
-                String level = log.optString("level", "");
-                String thread = log.optString("thread_name", "unknown");
+                JSONObject source = hits.getJSONObject(i).getJSONObject("_source");
+                String level = source.optString("level", "");
+                String thread = source.optString("thread_name", "unknown");
 
-                if (level.equalsIgnoreCase("DEBUG")) {
-                    debugLogsByThread.computeIfAbsent(thread, k -> new ArrayList<>()).add(log);
-                } else if (level.equalsIgnoreCase("ERROR")) {
-                    errorLogs.add(log);
+                if ("DEBUG".equalsIgnoreCase(level)) {
+                    debugLogsByThread.computeIfAbsent(thread, __ -> new ArrayList<>()).add(source);
+                } else if ("ERROR".equalsIgnoreCase(level)) {
+                    errorLogs.add(source);
                 }
             }
 
@@ -68,20 +67,21 @@ public class ErrorsTableCache {
 
             for (JSONObject error : errorLogs) {
                 String thread = error.optString("thread_name", "unknown");
-                String errorTimestamp = error.optString("@timestamp", "");
+                String timestampStr = error.optString("@timestamp", "");
                 ZonedDateTime errorTime;
                 try {
-                    errorTime = ZonedDateTime.parse(errorTimestamp);
-                } catch (Exception e) {
+                    errorTime = ZonedDateTime.parse(timestampStr);
+                } catch (Exception ignored) {
                     continue;
                 }
 
-                List<JSONObject> candidates = debugLogsByThread.getOrDefault(thread, List.of());
+                List<JSONObject> debugCandidates = debugLogsByThread.get(thread);
+                if (debugCandidates == null || debugCandidates.isEmpty()) continue;
 
                 JSONObject matchedDebug = null;
-                for (int i = candidates.size() - 1; i >= 0; i--) {
-                    JSONObject debug = candidates.get(i);
+                for (int i = debugCandidates.size() - 1; i >= 0; i--) {
                     try {
+                        JSONObject debug = debugCandidates.get(i);
                         ZonedDateTime debugTime = ZonedDateTime.parse(debug.optString("@timestamp", ""));
                         if (!debugTime.isAfter(errorTime)) {
                             matchedDebug = debug;
@@ -93,51 +93,51 @@ public class ErrorsTableCache {
                 if (matchedDebug == null) continue;
 
                 String stackTrace = error.optString("stack_trace", "");
+                if (stackTrace.isBlank()) continue;
+
                 String exceptionType = extractExceptionType(stackTrace);
                 String fqcn = extractClassNameFromStackTrace(stackTrace);
+                if (fqcn == null) continue;
+
                 int line = extractLineNumberFromStackTrace(stackTrace, matchedDebug.optString("message", ""));
+                if (line < 0) continue;
 
-                if (fqcn == null || line < 0) continue;
+                // Extraer clase simple
+                int lastDot = fqcn.lastIndexOf('.');
+                String simpleClassName = (lastDot != -1) ? fqcn.substring(lastDot + 1) : fqcn;
 
-                String simpleClassName = fqcn.substring(fqcn.lastIndexOf('.') + 1);
-
-                // Extraer motivo del error desde el mensaje de debug
-                String debugMessage = matchedDebug.optString("message", "");
+                // Motivo del error desde el mensaje DEBUG
+                String debugMsg = matchedDebug.optString("message", "").trim();
                 String lineContent;
-                int lastColon = debugMessage.lastIndexOf("Exception:");
-                if (lastColon != -1 && lastColon + 10 < debugMessage.length()) {
-                    lineContent = debugMessage.substring(lastColon + 10).trim();
+                int idx = debugMsg.lastIndexOf("Exception:");
+                if (idx != -1 && idx + 10 < debugMsg.length()) {
+                    lineContent = debugMsg.substring(idx + 10).trim();
                 } else {
-                    lineContent = debugMessage.trim();
+                    lineContent = debugMsg;
                 }
 
                 grouped
-                        .computeIfAbsent(fqcn, k -> new HashMap<>())
-                        .computeIfAbsent(line, k -> new HashMap<>())
-                        .compute(exceptionType, (k, v) -> {
-                            if (v == null) {
+                        .computeIfAbsent(fqcn, __ -> new HashMap<>())
+                        .computeIfAbsent(line, __ -> new HashMap<>())
+                        .compute(exceptionType, (__, existing) -> {
+                            if (existing == null) {
                                 return new ErrorsTablePanel.ErrorsTableEntry(simpleClassName, exceptionType, line, lineContent, 1);
                             } else {
-                                v.occurrences++;
-                                return v;
+                                existing.occurrences++;
+                                return existing;
                             }
                         });
             }
 
-            for (Map<Integer, Map<String, ErrorsTablePanel.ErrorsTableEntry>> perClass : grouped.values()) {
-                for (Map<String, ErrorsTablePanel.ErrorsTableEntry> perLine : perClass.values()) {
-                    result.addAll(perLine.values());
-                }
-            }
+            grouped.values().forEach(perClass -> perClass.values().forEach(perLine -> result.addAll(perLine.values())));
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         update(result);
         ErrorsTable.refreshData(result);
-
-        return result;
     }
+
 
 }
