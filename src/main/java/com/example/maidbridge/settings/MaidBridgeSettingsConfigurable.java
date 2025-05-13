@@ -48,14 +48,14 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
 
         // Date picker setup
         startDatePicker = new JXDatePicker();
-        startDatePicker.setFormats("yyyy-MM-dd"); // solo fecha
+        startDatePicker.setFormats("yyyy-MM-dd");
 
         // Spinner para seleccionar hora y minutos
         SpinnerDateModel timeModel = new SpinnerDateModel();
         timeSpinner = new JSpinner(timeModel);
         JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timeSpinner, "HH:mm");
         timeSpinner.setEditor(timeEditor);
-        timeSpinner.setValue(new Date()); // valor inicial
+        timeSpinner.setValue(new Date());
 
         mainPanel.add(new JLabel("Elasticsearch deployment URL:"));
         mainPanel.add(elasticsearchURLField);

@@ -118,7 +118,7 @@ public class LogMonitoring implements LineMarkerProvider {
                                         .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
                             },
                             GutterIconRenderer.Alignment.LEFT,
-                            () -> "maid-bridge error"
+                            () -> "maid-bridge log"
                     );
 
                     result.add(marker);

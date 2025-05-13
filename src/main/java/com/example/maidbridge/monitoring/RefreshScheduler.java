@@ -24,7 +24,6 @@ public class RefreshScheduler {
         if (scheduler != null && !scheduler.isShutdown()) return;
 
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
-        int interval = settings.getRefreshInterval(); // in seconds
 
         String currentSnapshot = settingsSnapshot(settings);
         if (!Objects.equals(lastSnapshot, currentSnapshot)) {
@@ -52,7 +51,7 @@ public class RefreshScheduler {
                 ErrorsTableCache.computeDetailedErrorData();
                 DaemonCodeAnalyzer.getInstance(project).restart();
             });
-        }, interval, interval, TimeUnit.SECONDS);
+        }, 15, 15, TimeUnit.SECONDS);
     }
 
     public static void stop() {
@@ -68,8 +67,7 @@ public class RefreshScheduler {
                 settings.getUsername(),
                 settings.getPassword(),
                 settings.getIndex(),
-                settings.getKibanaURL(),
-                String.valueOf(settings.getRefreshInterval())
+                settings.getKibanaURL()
         );
     }
 }

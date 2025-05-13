@@ -117,7 +117,6 @@ public class ErrorMonitoring implements LineMarkerProvider {
         } else {
             count = 0;
         }
-
     }
 
     public static Map<MethodKey, Map<String, ErrorData>> countErrorOccurrences(Project project) {
@@ -192,10 +191,6 @@ public class ErrorMonitoring implements LineMarkerProvider {
         } catch (Exception e) {
             notifyEmptyResponse();
             e.printStackTrace();
-            NotificationGroupManager.getInstance()
-                    .getNotificationGroup("MaID-BridgE Notification Group")
-                    .createNotification("Error al procesar logs de errores desde Elasticsearch", NotificationType.ERROR)
-                    .notify(project);
         }
 
         return result;

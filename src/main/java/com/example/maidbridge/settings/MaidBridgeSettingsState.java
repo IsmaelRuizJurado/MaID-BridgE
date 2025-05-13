@@ -21,7 +21,6 @@ public final class MaidBridgeSettingsState implements PersistentStateComponent<M
         public String password = "aBewwyxIDlbHOF79YcpH";
         public String index = "spring-petclinic-logs";
         public String kibanaURL = "http://localhost:5601/";
-        public int refreshInterval = 15;
         public String startTime = ZonedDateTime.now().minusHours(24).toString();
     }
 
@@ -79,14 +78,6 @@ public final class MaidBridgeSettingsState implements PersistentStateComponent<M
 
     public void setKibanaURL(String kibanaURL) {
         state.kibanaURL = kibanaURL;
-    }
-
-    public int getRefreshInterval() {
-        return state.refreshInterval;
-    }
-
-    public void setRefreshInterval(int interval) {
-        state.refreshInterval = interval;
     }
 
     public ZonedDateTime getStartTime() {
