@@ -23,7 +23,6 @@ public class ErrorsTable implements ToolWindowFactory, DumbAware{
         toolWindow.getContentManager().addContent(content);
     }
 
-
     public static void refreshData(List<ErrorsTablePanel.ErrorsTableEntry> data) {
         if (panel != null) {
             panel.refreshData(data);

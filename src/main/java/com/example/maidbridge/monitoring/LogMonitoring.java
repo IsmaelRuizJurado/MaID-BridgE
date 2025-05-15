@@ -94,7 +94,7 @@ public class LogMonitoring implements LineMarkerProvider {
                             element,
                             element.getTextRange(),
                             icon,
-                            (Function<PsiElement, String>) psi -> String.format("""
+                            psi -> String.format("""
                                 <html>
                                 <b>Type:</b> %s<br>
                                 <b>Message:</b> %s<br>

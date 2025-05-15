@@ -38,49 +38,6 @@ public class Auxiliaries {
         return classes[0].getQualifiedName();
     }
 
-    //Métodos para Logs
-    public static class LogData {
-        public int count;
-        public int countLast24h;
-
-        public LogData(int count, int countLast24h) {
-            this.count = count;
-            this.countLast24h = countLast24h;
-        }
-    }
-
-    public static class LogKey {
-        public String message;
-        public String level;
-
-        public LogKey(String message, String level) {
-            this.message = message;
-            this.level = level;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof LogKey other)) return false;
-            return Objects.equals(message, other.message) && Objects.equals(level, other.level);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(message, level);
-        }
-
-    }
-
-    public static Color getColorForLevel(String level) {
-        return switch (level.toUpperCase()) {
-            case "INFO" -> Color.GRAY;
-            case "WARNING", "WARN" -> Color.ORANGE;
-            case "SEVERE", "ERROR" -> Color.RED;
-            default -> Color.BLUE;
-        };
-    }
-
     public static Icon createColoredIcon(Color color, int count, @Nullable Color colorText) {
         String text;
 
@@ -130,6 +87,48 @@ public class Auxiliaries {
         return new ImageIcon(image);
     }
 
+    //Métodos para Logs---------------------------------------------------------------------
+    public static class LogData {
+        public int count;
+        public int countLast24h;
+
+        public LogData(int count, int countLast24h) {
+            this.count = count;
+            this.countLast24h = countLast24h;
+        }
+    }
+
+    public static class LogKey {
+        public String message;
+        public String level;
+
+        public LogKey(String message, String level) {
+            this.message = message;
+            this.level = level;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof LogKey other)) return false;
+            return Objects.equals(message, other.message) && Objects.equals(level, other.level);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(message, level);
+        }
+
+    }
+
+    public static Color getColorForLevel(String level) {
+        return switch (level.toUpperCase()) {
+            case "INFO" -> Color.GRAY;
+            case "WARNING", "WARN" -> Color.ORANGE;
+            case "SEVERE", "ERROR" -> Color.RED;
+            default -> Color.BLUE;
+        };
+    }
 
     public static String getStringLiteralValue(PsiExpression expr) {
         if (expr instanceof PsiLiteralExpression literal && literal.getValue() instanceof String str) {
@@ -309,5 +308,4 @@ public class Auxiliaries {
         });
         return map;
     }
-
 }

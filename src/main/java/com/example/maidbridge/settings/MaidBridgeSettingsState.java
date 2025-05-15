@@ -17,9 +17,9 @@ public final class MaidBridgeSettingsState implements PersistentStateComponent<M
 
     public static class State {
         public String elasticsearchURL = "http://localhost:9200/";
-        public String username = "elastic";
-        public String password = "aBewwyxIDlbHOF79YcpH";
-        public String index = "spring-petclinic-logs";
+        public String username = "";
+        public String password = "";
+        public String index = "";
         public String kibanaURL = "http://localhost:5601/";
         public String startTime = ZonedDateTime.now().minusHours(24).toString();
     }
@@ -90,6 +90,4 @@ public final class MaidBridgeSettingsState implements PersistentStateComponent<M
     public void setStartTime(ZonedDateTime zdt) {
         state.startTime = zdt.toString();
     }
-
-
 }

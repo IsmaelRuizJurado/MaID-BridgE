@@ -17,4 +17,3 @@ public class RefreshStartupActivity implements ProjectActivity {
         return CompletableFuture.completedFuture(null);
     }
 }
-

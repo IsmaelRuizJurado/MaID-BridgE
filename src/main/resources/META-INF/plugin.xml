@@ -6,6 +6,8 @@
 
     <description>
         Get the benefits of monitoriring directly on your development environment with MaID-BridgE!
+
+        [This is part of a final degree project, so no functionality is guaranteed with the use of the extension]
     </description>
 
     <depends>com.intellij.modules.platform</depends>

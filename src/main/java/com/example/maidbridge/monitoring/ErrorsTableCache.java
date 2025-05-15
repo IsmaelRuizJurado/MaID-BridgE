@@ -138,6 +138,4 @@ public class ErrorsTableCache {
         update(result);
         ErrorsTable.refreshData(result);
     }
-
-
 }

@@ -24,7 +24,6 @@ public class MaidBridgeSettingsConfigurable implements Configurable {
     private JPasswordField passwordField;
     private JTextField indexField;
     private JTextField kibanaURLField;
-    private JSpinner refreshIntervalSpinner;
     private JXDatePicker startDatePicker;
     private JSpinner timeSpinner;
 

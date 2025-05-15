@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
-import java.io.IOException;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -195,7 +194,5 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
         return result;
     }
-
-
 }
 
