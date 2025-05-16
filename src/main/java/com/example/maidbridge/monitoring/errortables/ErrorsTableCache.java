@@ -1,4 +1,4 @@
-package com.example.maidbridge.monitoring;
+package com.example.maidbridge.monitoring.errortables;
 
 import com.example.maidbridge.elastic.ElasticConnector;
 import org.json.JSONArray;

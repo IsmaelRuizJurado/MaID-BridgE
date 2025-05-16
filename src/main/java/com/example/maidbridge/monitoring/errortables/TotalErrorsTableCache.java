@@ -1,4 +1,4 @@
-package com.example.maidbridge.monitoring;
+package com.example.maidbridge.monitoring.errortables;
 
 import java.util.HashMap;
 import java.util.Map;

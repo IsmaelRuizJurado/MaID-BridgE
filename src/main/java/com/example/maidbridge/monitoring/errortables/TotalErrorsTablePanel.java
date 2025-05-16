@@ -1,4 +1,4 @@
-package com.example.maidbridge.monitoring;
+package com.example.maidbridge.monitoring.errortables;
 
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;

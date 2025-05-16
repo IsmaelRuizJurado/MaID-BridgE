@@ -1,4 +1,4 @@
-package com.example.maidbridge.monitoring;
+package com.example.maidbridge.monitoring.errortables;
 
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
 
 public class ErrorsTablePanel extends JPanel {
 
-    private final DefaultTableModel tableModel;
-    private final TableRowSorter<TableModel> sorter;
+    public final DefaultTableModel tableModel;
+    public final TableRowSorter<TableModel> sorter;
 
     public ErrorsTablePanel() {
         super(new BorderLayout());

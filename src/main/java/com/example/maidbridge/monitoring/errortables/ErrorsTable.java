@@ -1,4 +1,4 @@
-package com.example.maidbridge.monitoring;
+package com.example.maidbridge.monitoring.errortables;
 
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -8,23 +8,22 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
+import java.util.List;
 
-public class TotalErrorsTable implements ToolWindowFactory, DumbAware {
+public class ErrorsTable implements ToolWindowFactory, DumbAware{
 
-    private static TotalErrorsTablePanel panel;
+    private static ErrorsTablePanel panel;
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        panel = new TotalErrorsTablePanel(); // clase que extiende JPanel
+        panel = new ErrorsTablePanel(); // clase que extiende JPanel
 
         ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(panel, "", false);
         toolWindow.getContentManager().addContent(content);
     }
 
-
-    public static void refreshData(Map<String, Integer> data) {
+    public static void refreshData(List<ErrorsTablePanel.ErrorsTableEntry> data) {
         if (panel != null) {
             panel.refreshData(data);
         }

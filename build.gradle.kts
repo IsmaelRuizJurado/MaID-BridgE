@@ -23,7 +23,14 @@ dependencies {
     implementation("org.elasticsearch.client:elasticsearch-rest-client:8.17.4")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.json:json:20231013")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.12.0")
 }
+
 
 tasks {
     // Set the JVM compatibility versions
@@ -45,5 +52,9 @@ tasks {
 
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }

@@ -1,5 +1,8 @@
 package com.example.maidbridge.monitoring;
 
+import com.example.maidbridge.monitoring.errortables.ErrorsTableCache;
+import com.example.maidbridge.monitoring.errortables.TotalErrorsTable;
+import com.example.maidbridge.monitoring.errortables.TotalErrorsTableCache;
 import com.example.maidbridge.settings.MaidBridgeSettingsState;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.application.ApplicationManager;

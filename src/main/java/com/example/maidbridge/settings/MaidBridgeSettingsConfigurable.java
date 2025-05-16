@@ -19,13 +19,13 @@ import static com.example.maidbridge.elastic.ElasticConnector.*;
 
 public class MaidBridgeSettingsConfigurable implements Configurable {
 
-    private JTextField elasticsearchURLField;
-    private JTextField userField;
-    private JPasswordField passwordField;
-    private JTextField indexField;
-    private JTextField kibanaURLField;
-    private JXDatePicker startDatePicker;
-    private JSpinner timeSpinner;
+    public JTextField elasticsearchURLField;
+    public JTextField userField;
+    public JPasswordField passwordField;
+    public JTextField indexField;
+    public JTextField kibanaURLField;
+    public JXDatePicker startDatePicker;
+    public JSpinner timeSpinner;
 
     private JPanel mainPanel;
 
