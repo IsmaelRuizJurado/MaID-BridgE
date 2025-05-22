@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>com.example.maidbridge</id>
+    <id>com.maidbridge</id>
     <name>MaID-BridgE</name>
     <version>1.0</version>
     <vendor>Ismael Ruiz Jurado and Pedro Jesús Ruiz Aguilar</vendor>
@@ -15,7 +15,7 @@
 
     <actions>
         <action id="com.example.maidbridge.OpenMaidBridgeSettings"
-                class="com.example.maidbridge.settings.OpenMaidBridgeSettingsAction"
+                class="com.maidbridge.settings.OpenMaidBridgeSettingsAction"
                 text="Configure MaID-BridgE"
                 description="Open the configurations tab for the plug-in MaID-BridgE">
             <!--  Menú Tools  -->
@@ -26,11 +26,11 @@
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
-        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.LogMonitoring"/>
-        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.example.maidbridge.monitoring.ErrorMonitoring"/>
-        <projectConfigurable instance="com.example.maidbridge.settings.MaidBridgeSettingsConfigurable" displayName="Configure MaID-BridgE"/>
-        <postStartupActivity implementation="com.example.maidbridge.monitoring.RefreshStartupActivity"/>
-        <postStartupActivity implementation="com.example.maidbridge.settings.MaidBridgeSettingsNotifier"/>
+        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.maidbridge.monitoring.LogMonitoring"/>
+        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.maidbridge.monitoring.ErrorMonitoring"/>
+        <projectConfigurable instance="com.maidbridge.settings.MaidBridgeSettingsConfigurable" displayName="Configure MaID-BridgE"/>
+        <postStartupActivity implementation="com.maidbridge.monitoring.RefreshStartupActivity"/>
+        <postStartupActivity implementation="com.maidbridge.settings.MaidBridgeSettingsNotifier"/>
 
         <notificationGroup id="MaID-BridgE Notification Group"
                            displayType="BALLOON"
@@ -39,13 +39,13 @@
         <toolWindow
                 id="MaID-BridgE Total Errors"
                 anchor="left"
-                factoryClass="com.example.maidbridge.monitoring.errortables.TotalErrorsTable"
+                factoryClass="com.maidbridge.monitoring.errortables.TotalErrorsTable"
                 secondary="false">
         </toolWindow>
         <toolWindow
                 id="MaID-BridgE Error Details"
                 anchor="left"
-                factoryClass="com.example.maidbridge.monitoring.errortables.ErrorsTable"
+                factoryClass="com.maidbridge.monitoring.errortables.ErrorsTable"
                 secondary="false">
         </toolWindow>
     </extensions>
