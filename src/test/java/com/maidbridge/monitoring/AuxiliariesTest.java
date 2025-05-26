@@ -1,17 +1,22 @@
 package com.maidbridge.monitoring;
 
+import com.intellij.psi.PsiFile;
 import com.maidbridge.monitoring.Auxiliaries.*;
 import com.maidbridge.settings.MaidBridgeSettingsState;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.awt.*;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.intellij.psi.PsiLiteralExpression;
+
+import javax.swing.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,6 +46,7 @@ public class AuxiliariesTest {
         MaidBridgeSettingsState settings = mock(MaidBridgeSettingsState.class);
         when(settings.getKibanaURL()).thenReturn("http://localhost:5601");
         when(settings.getIndex()).thenReturn("logs-*");
+        when(settings.getLogTimeRange()).thenReturn("2025");
 
         try (MockedStatic<MaidBridgeSettingsState> mock = mockStatic(MaidBridgeSettingsState.class)) {
             mock.when(MaidBridgeSettingsState::getInstance).thenReturn(settings);
@@ -57,6 +63,7 @@ public class AuxiliariesTest {
         MaidBridgeSettingsState settings = mock(MaidBridgeSettingsState.class);
         when(settings.getKibanaURL()).thenReturn("http://localhost:5601");
         when(settings.getIndex()).thenReturn("errors-*");
+        when(settings.getErrorTimeRange()).thenReturn("2025");
 
         try (MockedStatic<MaidBridgeSettingsState> mock = mockStatic(MaidBridgeSettingsState.class)) {
             mock.when(MaidBridgeSettingsState::getInstance).thenReturn(settings);
@@ -147,4 +154,44 @@ public class AuxiliariesTest {
         assertNotEquals(key1, key3);
         assertEquals(key1.hashCode(), key2.hashCode());
     }
+
+        private final String stackTrace = """
+        java.lang.ArithmeticException: / by zero
+            at com.example.MyClass.myMethod(MyClass.java:42)
+            at java.base/java.lang.Thread.run(Thread.java:829)
+    """;
+
+        @Test
+        void testExtractAritmeticExceptionType() {
+            String type = Auxiliaries.extractExceptionType(stackTrace);
+            assertEquals("ArithmeticException", type);
+        }
+
+        @Test
+        void testExtractManyLineNumberFromStackTrace() {
+            int line = Auxiliaries.extractLineNumberFromStackTrace(stackTrace, "");
+            assertEquals(41, line);
+        }
+
+        @Test
+        void testExtractClassNamesFromStackTrace() {
+            String fqcn = Auxiliaries.extractClassNameFromStackTrace(stackTrace);
+            assertEquals("com.example.MyClass", fqcn);
+        }
+
+        @Test
+        void testParseStackTrace2() {
+            Map<String, PsiFile> map = new HashMap<>();
+            map.put("com.example.MyClass", null); // Mock presence
+
+            Auxiliaries.StackTraceInfo info = Auxiliaries.parseStackTrace(stackTrace, map);
+            assertNotNull(info);
+            assertEquals("com.example.MyClass", info.fqcn);
+            assertEquals("myMethod", info.methodName);
+            assertEquals(41, info.line);
+            assertEquals("ArithmeticException", info.exceptionType);
+        }
+
+
+
 }
