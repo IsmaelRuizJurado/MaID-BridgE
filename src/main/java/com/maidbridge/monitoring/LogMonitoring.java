@@ -114,7 +114,7 @@ public class LogMonitoring implements LineMarkerProvider {
                                 <b>Message:</b> %s<br>
                                 <b>Total occurrences:</b> %d<br>
                                 <b>Occurrences (last 24h):</b> %d<br>
-                                <b>Click icon to copy Kibana URL</b>
+                                <b>Click the icon to open these logs in Kibana (URL will be copied)</b>
                                 </html>
                                 """,
                                     key.level,

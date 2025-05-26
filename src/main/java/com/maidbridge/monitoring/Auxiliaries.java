@@ -160,13 +160,27 @@ public class Auxiliaries {
                 StandardCharsets.UTF_8
         );
 
+        // Construir el rango de tiempo en función de la configuración
+        String timeRange;
+        switch (settings.getLogTimeRange()) {
+            case "7d" -> timeRange = "now-7d";
+            case "30d" -> timeRange = "now-30d";
+            case "custom" -> {
+                ZonedDateTime from = settings.getLogCustomTime();
+                timeRange = from.toInstant().toString(); // en formato ISO
+            }
+            default -> timeRange = "now-24h";
+        }
+
         return String.format(
-                "%sapp/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:now-24h,to:now))",
+                "%sapp/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:'%s',to:now))",
                 baseUrl,
                 settings.getIndex(),
-                encodedQuery
+                encodedQuery,
+                timeRange
         );
     }
+
 
     //Métodos para errores
     public static class ErrorData {
@@ -217,17 +231,37 @@ public class Auxiliaries {
             baseUrl += "/";
         }
 
-        // Construir query segura para Kibana
-        String query = String.format("level:ERROR AND stack_trace: *%s* AND stack_trace: *%s* ", exceptionType, methodName);
-        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        // Construir la query de búsqueda
+        StringBuilder queryBuilder = new StringBuilder("level:ERROR AND stack_trace:*")
+                .append(methodName).append("*");
+
+        if (!"multiple".equalsIgnoreCase(exceptionType)) {
+            queryBuilder.append(" AND stack_trace:*").append(exceptionType).append("*");
+        }
+
+        // Calcular el rango temporal según configuración
+        String fromTime;
+        switch (settings.getErrorTimeRange()) {
+            case "7d" -> fromTime = "now-7d";
+            case "30d" -> fromTime = "now-30d";
+            case "custom" -> {
+                ZonedDateTime start = settings.getErrorCustomTime();
+                fromTime = start != null ? start.toInstant().toString() : "now-24h";
+            }
+            default -> fromTime = "now-24h";
+        }
+
+        String encodedQuery = URLEncoder.encode(queryBuilder.toString(), StandardCharsets.UTF_8);
 
         return String.format(
-                "%sapp/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:now-24h,to:now))",
+                "%sapp/discover#/?_a=(index:'%s',query:(language:kuery,query:'%s'))&_g=(time:(from:'%s',to:now))",
                 baseUrl,
                 settings.getIndex(),
-                encodedQuery
+                encodedQuery,
+                fromTime
         );
     }
+
 
     public static String extractExceptionType(String stackTrace) {
         if (stackTrace == null || stackTrace.isBlank()) return "Unknown";

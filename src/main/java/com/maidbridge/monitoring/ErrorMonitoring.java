@@ -43,7 +43,7 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
         MaidBridgeSettingsState settings = MaidBridgeSettingsState.getInstance();
 
-        if(count==0){
+        if (count == 0) {
             PsiFile file = elements.get(0).getContainingFile();
             Project project = file.getProject();
             String classQualifiedName = getQualifiedClassName(file);
@@ -52,7 +52,6 @@ public class ErrorMonitoring implements LineMarkerProvider {
             Map<MethodKey, Map<String, ErrorData>> errorsByMethod = countErrorOccurrences(project);
             if (errorsByMethod.isEmpty()) return;
 
-            // Iterar sobre todos los mÃ©todos del archivo
             file.accept(new JavaRecursiveElementVisitor() {
                 @Override
                 public void visitMethod(PsiMethod method) {
@@ -60,64 +59,64 @@ public class ErrorMonitoring implements LineMarkerProvider {
 
                     String methodName = method.getName();
                     MethodKey key = new MethodKey(classQualifiedName, methodName);
-                    Map<String, ErrorData> errors = errorsByMethod.get(key);
-                    if (errors == null || errors.isEmpty()) return;
+                    Map<String, ErrorData> errorMap = errorsByMethod.get(key);
+                    if (errorMap == null || errorMap.isEmpty()) return;
 
-                    for (Map.Entry<String, ErrorData> entry : errors.entrySet()) {
+                    ZonedDateTime threshold = switch (settings.getErrorTimeRange()) {
+                        case "7d" -> ZonedDateTime.now().minusDays(7);
+                        case "30d" -> ZonedDateTime.now().minusDays(30);
+                        case "custom" -> settings.getErrorCustomTime();
+                        default -> ZonedDateTime.now().minusHours(24);
+                    };
+
+                    int totalCount = 0;
+                    int totalLast24h = 0;
+                    StringBuilder tooltipBuilder = new StringBuilder("<html>");
+
+                    for (Map.Entry<String, ErrorData> entry : errorMap.entrySet()) {
                         String message = entry.getKey();
                         ErrorData data = entry.getValue();
 
-                        ZonedDateTime threshold = switch (settings.getErrorTimeRange()) {
-                            case "7d" -> ZonedDateTime.now().minusDays(7);
-                            case "30d" -> ZonedDateTime.now().minusDays(30);
-                            case "custom" -> settings.getErrorCustomTime();
-                            default -> ZonedDateTime.now().minusHours(24);
-                        };
+                        if (!data.errorTime.isAfter(threshold)) continue;
+                        if (data.stackTrace == null || !extractClassNameFromStackTrace(data.stackTrace).equals(classQualifiedName)) continue;
 
-                        if (!data.errorTime.isAfter(threshold)) {
-                            continue;
-                        }
+                        totalCount += data.count;
+                        totalLast24h += data.countLast24h;
 
-
-                        if (data.stackTrace == null || !extractClassNameFromStackTrace(data.stackTrace).equals(classQualifiedName)) {
-                            continue;
-                        }
-
-                        Icon icon = createColoredIcon(Color.RED, data.count, Color.WHITE);
-                        String kibanaUrl = buildKibanaUrlError(data.type, key.methodName);
-
-                        LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
-                                method.getNameIdentifier(),
-                                method.getNameIdentifier().getTextRange(),
-                                icon,
-                                psi -> String.format("""
-                        <html>
+                        tooltipBuilder.append(String.format("""
                         <b>Error Type:</b> %s<br>
                         <b>Message:</b> %s<br>
                         <b>Total occurrences:</b> %d<br>
-                        <b>Occurrences (last 24h):</b> %d<br>
-                        <b>Click icon to copy Kibana URL</b>
-                        </html>
+                        <b>Occurrences (last 24h):</b> %d<br><br>
                         """,
-                                        data.type,
-                                        message,
-                                        data.count,
-                                        data.countLast24h
-                                ),
-                                (mouseEvent, psiElement) -> {
-                                    StringSelection selection = new StringSelection(kibanaUrl);
-                                    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-                                    NotificationGroupManager.getInstance()
-                                            .getNotificationGroup("MaID-BridgE Notification Group")
-                                            .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
-                                            .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
-                                },
-                                GutterIconRenderer.Alignment.LEFT,
-                                () -> "maid-bridge error"
-                        );
-
-                        result.add(marker);
+                                data.type, message, data.count, data.countLast24h));
                     }
+
+                    if (totalCount == 0) return;
+
+                    tooltipBuilder.append("<b>Click the icon to open the errors in this method in Kibana (URL will be copied)</b></html>");
+
+                    Icon icon = createColoredIcon(Color.RED, totalCount, Color.WHITE);
+                    String kibanaUrl = buildKibanaUrlError("multiple", key.methodName);
+
+                    LineMarkerInfo<PsiElement> marker = new LineMarkerInfo<>(
+                            method.getNameIdentifier(),
+                            method.getNameIdentifier().getTextRange(),
+                            icon,
+                            psi -> tooltipBuilder.toString(),
+                            (mouseEvent, psiElement) -> {
+                                StringSelection selection = new StringSelection(kibanaUrl);
+                                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+                                NotificationGroupManager.getInstance()
+                                        .getNotificationGroup("MaID-BridgE Notification Group")
+                                        .createNotification("URL copiada al portapapeles", NotificationType.INFORMATION)
+                                        .notify(ProjectUtil.guessProjectForFile(file.getVirtualFile()));
+                            },
+                            GutterIconRenderer.Alignment.LEFT,
+                            () -> "maid-bridge error"
+                    );
+
+                    result.add(marker);
                 }
             });
             count++;
